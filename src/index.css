@@ -1,4 +1,10 @@
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
+@font-face {
+  font-family: 'Maesto';
+  src: url('/fonts/DTM-Sans.otf') format('opentype');
+}
+
+
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
     *, :before, :after, ::backdrop {
@@ -447,53 +453,53 @@
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
-    font-family: Courier New, monospace;
+    font-family: 'Maesto', 'Courier New', monospace;
     font-weight: bold;
   }
 
   .neon-blue {
     color: var(--retro-blue);
-    text-shadow: 0 0 5px var(--retro-blue), 0 0 10px var(--retro-blue), 0 0 15px var(--retro-blue), 0 0 20px var(--retro-blue);
+    /* text-shadow: 0 0 5px var(--retro-blue), 0 0 10px var(--retro-blue), 0 0 15px var(--retro-blue), 0 0 20px var(--retro-blue); */
   }
 
   .neon-pink {
     color: var(--retro-pink);
-    text-shadow: 0 0 5px var(--retro-pink), 0 0 10px var(--retro-pink), 0 0 15px var(--retro-pink), 0 0 20px var(--retro-pink);
+    /* text-shadow: 0 0 5px var(--retro-pink), 0 0 10px var(--retro-pink), 0 0 15px var(--retro-pink), 0 0 20px var(--retro-pink); */
   }
 
   .neon-yellow {
     color: var(--retro-yellow);
-    text-shadow: 0 0 5px var(--retro-yellow), 0 0 10px var(--retro-yellow), 0 0 15px var(--retro-yellow), 0 0 20px var(--retro-yellow);
+    /* text-shadow: 0 0 5px var(--retro-yellow), 0 0 10px var(--retro-yellow), 0 0 15px var(--retro-yellow), 0 0 20px var(--retro-yellow); */
   }
 
   .neon-purple {
     color: var(--retro-purple);
-    text-shadow: 0 0 5px var(--retro-purple), 0 0 10px var(--retro-purple), 0 0 15px var(--retro-purple), 0 0 20px var(--retro-purple);
+    /* text-shadow: 0 0 5px var(--retro-purple), 0 0 10px var(--retro-purple), 0 0 15px var(--retro-purple), 0 0 20px var(--retro-purple); */
   }
 
   .neon-red {
     color: var(--retro-red);
-    text-shadow: 0 0 5px var(--retro-red), 0 0 10px var(--retro-red), 0 0 15px var(--retro-red), 0 0 20px var(--retro-red);
+    /* text-shadow: 0 0 5px var(--retro-red), 0 0 10px var(--retro-red), 0 0 15px var(--retro-red), 0 0 20px var(--retro-red); */
   }
 
   .neon-border-blue {
     border-color: var(--retro-blue);
-    box-shadow: 0 0 5px var(--retro-blue), 0 0 10px var(--retro-blue), inset 0 0 5px var(--retro-blue);
+    /* box-shadow: 0 0 5px var(--retro-blue), 0 0 10px var(--retro-blue), inset 0 0 5px var(--retro-blue); */
   }
 
   .neon-border-pink {
     border-color: var(--retro-pink);
-    box-shadow: 0 0 5px var(--retro-pink), 0 0 10px var(--retro-pink), inset 0 0 5px var(--retro-pink);
+    /* box-shadow: 0 0 5px var(--retro-pink), 0 0 10px var(--retro-pink), inset 0 0 5px var(--retro-pink); */
   }
 
   .neon-border-yellow {
     border-color: var(--retro-yellow);
-    box-shadow: 0 0 5px var(--retro-yellow), 0 0 10px var(--retro-yellow), inset 0 0 5px var(--retro-yellow);
+    /* box-shadow: 0 0 5px var(--retro-yellow), 0 0 10px var(--retro-yellow), inset 0 0 5px var(--retro-yellow); */
   }
 
   .neon-border-purple {
     border-color: var(--retro-purple);
-    box-shadow: 0 0 5px var(--retro-purple), 0 0 10px var(--retro-purple), inset 0 0 5px var(--retro-purple);
+    /* box-shadow: 0 0 5px var(--retro-purple), 0 0 10px var(--retro-purple), inset 0 0 5px var(--retro-purple); */
   }
 
   .scanlines {

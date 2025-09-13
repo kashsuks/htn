@@ -1,3 +1,8 @@
+@font-face {
+  font-family: 'Maesto';
+  src: url('/fonts/DTM-Sans.otf') format('opentype');
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -146,7 +151,7 @@
 
   /* Pixelated Font */
   .pixel-font {
-    font-family: 'Courier New', monospace;
+    font-family: 'Maesto', 'Courier New', monospace;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 2px;

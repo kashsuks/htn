@@ -52,7 +52,7 @@ export default function App() {
             <div className="text-8xl mb-4 neon-pink">
               STOCK FIGHTER
             </div>
-            <div className="text-2xl neon-blue">
+            <div className="text-4xl neon-blue">
               THE ULTIMATE TRADING BATTLE ARENA
             </div>
           </motion.div>
@@ -97,31 +97,6 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* Features */}
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1, duration: 0.6 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
-          >
-            <div className="border-2 neon-border-blue p-4" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
-              <div className="text-3xl mb-2">📈</div>
-              <div className="pixel-font">LIVE CHARTS</div>
-            </div>
-            <div className="border-2 neon-border-pink p-4" style={{backgroundColor: 'rgba(255, 0, 233, 0.1)'}}>
-              <div className="text-3xl mb-2">🚨</div>
-              <div className="pixel-font">BREAKING NEWS</div>
-            </div>
-            <div className="border-2 neon-border-yellow p-4" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}>
-              <div className="text-3xl mb-2">💬</div>
-              <div className="pixel-font">MARKET EVENTS</div>
-            </div>
-            <div className="border-2 neon-border-purple p-4" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>
-              <div className="text-3xl mb-2">🤖</div>
-              <div className="pixel-font">AI OPPONENT</div>
-            </div>
-          </motion.div>
-
           {/* Start Button */}
           <motion.div
             initial={{ scale: 0 }}
@@ -134,53 +109,8 @@ export default function App() {
               className="border-4 neon-border-yellow text-black pixel-font text-3xl px-12 py-6 bg-yellow-400 hover:bg-yellow-300"
               style={{backgroundColor: '#fff900'}}
             >
-              🥊 START BATTLE
+              START BATTLE
             </Button>
-          </motion.div>
-
-          {/* Floating animations */}
-          <motion.div
-            animate={{ 
-              y: [0, -20, 0],
-              rotate: [0, 10, -10, 0]
-            }}
-            transition={{ 
-              duration: 4, 
-              repeat: Infinity,
-              repeatType: "reverse"
-            }}
-            className="absolute top-20 left-20 text-6xl opacity-30"
-          >
-            💰
-          </motion.div>
-          
-          <motion.div
-            animate={{ 
-              y: [0, 15, 0],
-              x: [0, 10, 0]
-            }}
-            transition={{ 
-              duration: 5, 
-              repeat: Infinity,
-              repeatType: "reverse"
-            }}
-            className="absolute top-32 right-32 text-5xl opacity-30"
-          >
-            📊
-          </motion.div>
-          
-          <motion.div
-            animate={{ 
-              rotate: [0, 360]
-            }}
-            transition={{ 
-              duration: 8, 
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute bottom-20 left-32 text-4xl opacity-30"
-          >
-            ⚡
           </motion.div>
         </div>
       </div>
