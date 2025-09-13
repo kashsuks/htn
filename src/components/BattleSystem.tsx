@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { RBCTradingGame } from './RBCTradingGame';
+import { SimpleTradingGame } from './SimpleTradingGame';
 import { VSScreen } from './VSScreen';
 import { ResultsScreen } from './ResultsScreen';
 import { GameConfig } from './GameSetup';
@@ -262,7 +262,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
 
   if (battlePhase === 'player') {
     return (
-      <RBCTradingGame
+      <SimpleTradingGame
         gameConfig={gameConfig}
         isAITurn={false}
         onComplete={handlePlayerComplete}
@@ -284,7 +284,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
 
   if (battlePhase === 'ai') {
     return (
-      <RBCTradingGame
+      <SimpleTradingGame
         gameConfig={gameConfig}
         isAITurn={true}
         onComplete={handleAIComplete}

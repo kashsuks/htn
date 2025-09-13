@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { GameSetup, GameConfig } from './components/GameSetup';
 import { BattleSystem } from './components/BattleSystem';
 import { Button } from './components/ui/button';
-import { rbcApi } from './services/rbcApi';
+// import { rbcApi } from './services/rbcApi';
 
 type GamePhase = 'start' | 'setup' | 'battle' | 'complete';
 
@@ -19,9 +19,9 @@ export default function App() {
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [battleResults, setBattleResults] = useState<RoundResult[]>([]);
 
-  // Initialize RBC API from storage if available
+  // Initialize game state
   useEffect(() => {
-    rbcApi.initializeFromStorage();
+    // Game initialization logic here
   }, []);
 
   const startGame = () => {
@@ -42,7 +42,7 @@ export default function App() {
     setGamePhase('start');
     setGameConfig(null);
     setBattleResults([]);
-    rbcApi.clearAuth();
+    // Clear any game state if needed
   };
 
   if (gamePhase === 'start') {
