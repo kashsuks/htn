@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { GameSetup, GameConfig } from './components/GameSetup';
 import { BattleSystem } from './components/BattleSystem';
 import { Button } from './components/ui/button';
-// import { rbcApi } from './services/rbcApi';
+import { gameApi } from './services/gameApi';
 
 type GamePhase = 'start' | 'setup' | 'battle' | 'complete';
 
@@ -21,7 +21,7 @@ export default function App() {
 
   // Initialize game state
   useEffect(() => {
-    // Game initialization logic here
+    gameApi.initializeFromStorage();
   }, []);
 
   const startGame = () => {
@@ -42,7 +42,7 @@ export default function App() {
     setGamePhase('start');
     setGameConfig(null);
     setBattleResults([]);
-    // Clear any game state if needed
+    gameApi.clearAuth();
   };
 
   if (gamePhase === 'start') {

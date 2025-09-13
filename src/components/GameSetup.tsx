@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-// import { rbcApi, TeamRegistration } from '../services/rbcApi';
+import { gameApi, TeamRegistration } from '../services/gameApi';
 
 interface GameSetupProps {
   onGameStart: (config: GameConfig) => void;
@@ -50,7 +50,7 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!teamName || !contactEmail || !goal || cost <= 0) {
       setError('Please fill in all required fields');
       return;
@@ -60,7 +60,14 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
     setError('');
 
     try {
-      // Create game config without API calls
+      // Register team with RBC InvestEase API
+      const teamData: TeamRegistration = {
+        team_name: teamName,
+        contact_email: contactEmail,
+      };
+
+      await gameApi.registerTeam(teamData);
+
       const gameConfig: GameConfig = {
         timeframe,
         goal,

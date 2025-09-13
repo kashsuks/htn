@@ -6,6 +6,7 @@ import { NewsTicker } from './NewsTicker';
 import { CharacterPopup } from './CharacterPopup';
 import { AITradingFeed } from './AITradingFeed';
 import { GameConfig } from './GameSetup';
+import { gameApi, Client, Portfolio } from '../services/gameApi';
 
 interface StockData {
   time: string;
@@ -58,6 +59,83 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
   const [gameComplete, setGameComplete] = useState(false);
   const [showTradingModal, setShowTradingModal] = useState(false);
   const [aiTrades, setAiTrades] = useState<AITrade[]>([]);
+  
+  // RBC InvestEase API state
+  const [rbcClient, setRbcClient] = useState<Client | null>(null);
+  const [rbcPortfolio, setRbcPortfolio] = useState<Portfolio | null>(null);
+  const [rbcValue, setRbcValue] = useState(gameConfig.initialCash);
+  const [aiSessionId, setAiSessionId] = useState<string | null>(null);
+  
+  // AI trading state - separate cash and portfolio
+  const [aiCash, setAiCash] = useState(gameConfig.initialCash);
+  const [aiPortfolio, setAiPortfolio] = useState<{[key: string]: number}>({});
+
+  // Reset game state when round changes
+  useEffect(() => {
+    setTimeLeft(30);
+    setGameComplete(false);
+    setAiTrades([]);
+    setRbcValue(gameConfig.initialCash);
+    setTotalValue(gameConfig.initialCash);
+    setCash(gameConfig.initialCash);
+    setPortfolio({});
+    setAiCash(gameConfig.initialCash);
+    setAiPortfolio({});
+    console.log('🔄 Round reset for round:', roundNumber, 'isAITurn:', isAITurn);
+  }, [roundNumber, isAITurn, gameConfig.initialCash]);
+
+  // Initialize RBC InvestEase client and portfolio
+  useEffect(() => {
+    const initializeRBC = async () => {
+      try {
+        // Initialize API from storage
+        gameApi.initializeFromStorage();
+        
+        if (!gameApi.isAuthenticated()) {
+          // Register team if not authenticated
+          await gameApi.registerTeam({
+            team_name: gameConfig.teamName,
+            contact_email: gameConfig.contactEmail
+          });
+        }
+
+        // Create or get client
+        const clients = await gameApi.getClients();
+        let client = clients.find(c => c.email === gameConfig.contactEmail);
+        
+        if (!client) {
+          client = await gameApi.createClient({
+            name: gameConfig.teamName,
+            email: gameConfig.contactEmail,
+            cash: gameConfig.initialCash
+          });
+        }
+
+        setRbcClient(client);
+
+        // Create or get portfolio
+        const portfolios = await gameApi.getPortfolios(client.id);
+        let portfolio = portfolios.find(p => p.type === 'balanced');
+        
+        if (!portfolio) {
+          portfolio = await gameApi.createPortfolio(client.id, {
+            type: 'balanced',
+            initialAmount: gameConfig.initialCash
+          });
+        }
+
+        setRbcPortfolio(portfolio);
+        setRbcValue(portfolio.current_value);
+
+      } catch (error) {
+        console.error('Failed to initialize RBC InvestEase:', error);
+        // Fallback to mock values
+        setRbcValue(gameConfig.initialCash);
+      }
+    };
+
+    initializeRBC();
+  }, [gameConfig]);
 
   // Initialize chart data
   useEffect(() => {
@@ -111,99 +189,141 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     setTotalValue(cash + portfolioValue);
   }, [cash, portfolio, stocks]);
 
-  // Timer countdown
+  // Timer countdown - Fixed to never freeze
   useEffect(() => {
     if (gameComplete) return;
     
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !gameComplete) {
-      setGameComplete(true);
-      setShowTradingModal(false);
-      onComplete(totalValue);
-    }
-  }, [timeLeft, totalValue, onComplete, gameComplete]);
-
-  // AI trading logic
-  useEffect(() => {
-    if (!isAITurn || timeLeft <= 0 || gameComplete) return;
-    
-    const aiTradeInterval = setInterval(() => {
-      setStocks(currentStocks => {
-        setCash(currentCash => {
-          // AI makes "smart" trades based on trends
-          const bestStock = currentStocks.reduce((best, current) => 
-            current.change > best.change ? current : best
-          );
+    const intervalId = setInterval(() => {
+      setTimeLeft(prev => {
+        console.log('⏰ Timer tick:', prev);
+        if (prev <= 1) {
+          console.log('⏰ Time up! Completing round...');
+          setGameComplete(true);
+          setShowTradingModal(false);
           
-          const shouldTrade = Math.random() > 0.4;
-          const shouldBuy = Math.random() > 0.3;
-          
-          if (shouldTrade) {
-            if (shouldBuy && currentCash >= bestStock.price) {
-              const sharesToBuy = Math.floor(Math.random() * 3) + 1;
-              const cost = bestStock.price * sharesToBuy;
-              
-              if (currentCash >= cost) {
-                // Record AI trade
-                const newTrade: AITrade = {
-                  id: `${Date.now()}-${Math.random()}`,
-                  action: 'BUY',
-                  stock: bestStock.symbol,
-                  shares: sharesToBuy,
-                  price: bestStock.price,
-                  timestamp: Date.now()
-                };
-                
-                setAiTrades(prev => [...prev, newTrade]);
-                setPortfolio(prev => ({
-                  ...prev,
-                  [bestStock.symbol]: (prev[bestStock.symbol] || 0) + sharesToBuy
-                }));
-                return currentCash - cost;
-              }
-            } else {
-              // Try to sell
-              setPortfolio(currentPortfolio => {
-                const ownedStocks = Object.entries(currentPortfolio).filter(([_, shares]) => shares > 0);
-                if (ownedStocks.length > 0) {
-                  const [stockSymbol, ownedShares] = ownedStocks[Math.floor(Math.random() * ownedStocks.length)];
-                  const stock = currentStocks.find(s => s.symbol === stockSymbol);
-                  
-                  if (stock && ownedShares > 0) {
-                    const sharesToSell = Math.floor(Math.random() * Math.min(ownedShares, 3)) + 1;
-                    
-                    // Record AI trade
-                    const newTrade: AITrade = {
-                      id: `${Date.now()}-${Math.random()}`,
-                      action: 'SELL',
-                      stock: stock.symbol,
-                      shares: sharesToSell,
-                      price: stock.price,
-                      timestamp: Date.now()
-                    };
-                    
-                    setAiTrades(prev => [...prev, newTrade]);
-                    setCash(prev => prev + (stock.price * sharesToSell));
-                    return {
-                      ...currentPortfolio,
-                      [stockSymbol]: currentPortfolio[stockSymbol] - sharesToSell
-                    };
-                  }
-                }
-                return currentPortfolio;
-              });
-            }
+          // Complete AI session if it's an AI turn
+          if (isAITurn && aiSessionId) {
+            gameApi.completeAITradingSession(aiSessionId, rbcValue).catch(console.error);
           }
-          return currentCash;
-        });
-        return currentStocks;
+          
+          // Use RBC value for AI rounds, player value for player rounds
+          const finalValue = isAITurn ? rbcValue : totalValue;
+          onComplete(finalValue);
+          return 0;
+        }
+        return prev - 1;
       });
-    }, 2500);
+    }, 1000);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [gameComplete]); // Removed all dependencies that could cause re-renders
 
-    return () => clearInterval(aiTradeInterval);
-  }, [isAITurn, timeLeft, gameComplete]);
+  // Initialize AI trading session when AI turn starts
+  useEffect(() => {
+    if (!isAITurn || !rbcClient || !rbcPortfolio || aiSessionId) return;
+
+    console.log('🤖 Starting AI session with:', { 
+      isAITurn, 
+      rbcClient: rbcClient?.id, 
+      rbcPortfolio: rbcPortfolio?.id, 
+      roundNumber 
+    });
+
+    const startAISession = async () => {
+      try {
+        const session = await gameApi.startAITradingSession(
+          gameConfig,
+          rbcClient.id,
+          rbcPortfolio.id,
+          roundNumber
+        );
+        setAiSessionId(session.sessionId);
+        console.log('🤖 AI trading session started:', session.sessionId);
+      } catch (error) {
+        console.error('Failed to start AI trading session:', error);
+      }
+    };
+
+    startAISession();
+  }, [isAITurn, rbcClient, rbcPortfolio, aiSessionId, gameConfig, roundNumber]);
+
+  // AI trading logic - Proper cash and portfolio management
+  useEffect(() => {
+    if (!isAITurn || gameComplete) return;
+    
+    console.log('🤖 AI trading started for round:', roundNumber);
+    
+    const rbcInvestEaseStrategy = async () => {
+      try {
+        console.log('🤖 AI executing trade...');
+        
+        // Pick a random stock to "buy"
+        const randomStock = stocks[Math.floor(Math.random() * stocks.length)];
+        const sharesToBuy = Math.floor(Math.random() * 3) + 1; // 1-3 shares
+        const tradeValue = randomStock.price * sharesToBuy;
+        
+        // Check if AI has enough cash
+        setAiCash(prevCash => {
+          if (prevCash >= tradeValue) {
+            // AI can afford the trade
+            const newCash = prevCash - tradeValue;
+            
+            // Update AI portfolio
+            setAiPortfolio(prevPortfolio => {
+              const newPortfolio = {
+                ...prevPortfolio,
+                [randomStock.symbol]: (prevPortfolio[randomStock.symbol] || 0) + sharesToBuy
+              };
+              
+              // Calculate new total value
+              const portfolioValue = Object.entries(newPortfolio).reduce((total, [symbol, shares]) => {
+                const stock = stocks.find(s => s.symbol === symbol);
+                return total + (stock ? stock.price * shares : 0);
+              }, 0);
+              
+              const newTotalValue = newCash + portfolioValue;
+              setRbcValue(newTotalValue);
+              
+              // Record the trade
+              const trade: AITrade = {
+                id: `rbc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+                action: 'BUY',
+                stock: randomStock.symbol,
+                shares: sharesToBuy,
+                price: randomStock.price,
+                timestamp: Date.now()
+              };
+              
+              setAiTrades(prev => [...prev, trade]);
+              console.log('🤖 AI trade executed:', trade, 'Cash left:', newCash, 'Total value:', newTotalValue);
+              
+              return newPortfolio;
+            });
+            
+            return newCash;
+          } else {
+            console.log('🤖 AI not enough cash for trade:', prevCash, 'needed:', tradeValue);
+            return prevCash;
+          }
+        });
+
+      } catch (error) {
+        console.error('AI trading error:', error);
+      }
+    };
+
+    // Execute AI strategy every 2-4 seconds
+    const interval = 2000 + Math.random() * 2000;
+    console.log('🤖 Setting AI trade interval:', interval);
+    const aiTradeInterval = setInterval(rbcInvestEaseStrategy, interval);
+
+    return () => {
+      console.log('🤖 Clearing AI trade interval');
+      clearInterval(aiTradeInterval);
+    };
+  }, [isAITurn, gameComplete, roundNumber, stocks]);
 
   const handleEventTrigger = useCallback((impact: 'positive' | 'negative' | 'neutral') => {
     const multiplier = impact === 'positive' ? 1.05 : impact === 'negative' ? 0.95 : 1;
@@ -248,10 +368,10 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
       <CharacterPopup onEventTrigger={handleEventTrigger} />
       
       <PortfolioView
-        portfolio={portfolio}
+        portfolio={isAITurn ? aiPortfolio : portfolio}
         stocks={stocks}
-        cash={cash}
-        totalValue={totalValue}
+        cash={isAITurn ? aiCash : cash}
+        totalValue={isAITurn ? rbcValue : totalValue}
         timeLeft={timeLeft}
         totalTime={totalTime}
         isAITurn={isAITurn}
@@ -274,10 +394,11 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
       {isAITurn && (
         <AITradingFeed
           trades={aiTrades}
-          currentValue={totalValue}
+          currentValue={rbcValue}
           startValue={startValue}
         />
       )}
     </div>
   );
 }
+

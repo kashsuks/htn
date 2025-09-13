@@ -1,5 +1,39 @@
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
+
+// RBC API configuration
+const RBC_BASE_URL = process.env.RBC_BASE_URL || 'https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev';
+
+// Helper function to make RBC API calls
+const makeRBCApiCall = async (endpoint, method = 'GET', data = null, token = null) => {
+  try {
+    const config = {
+      method,
+      url: `${RBC_BASE_URL}${endpoint}`,
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    };
+
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (data) {
+      config.data = data;
+    }
+
+    console.log(`Making RBC API call: ${method} ${endpoint}`);
+    const response = await axios(config);
+    console.log(`RBC API response: ${response.status} ${response.statusText}`);
+    
+    return response.data;
+  } catch (error) {
+    console.error('RBC API Error:', error.response?.data || error.message);
+    throw error;
+  }
+};
 
 // In-memory storage for RBC trading sessions
 const rbcTradingSessions = new Map();
@@ -248,6 +282,147 @@ router.post('/:sessionId/update-value', (req, res) => {
     console.error('Error updating portfolio value:', error);
     res.status(500).json({
       error: 'Failed to update portfolio value',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /rbc-trading/:sessionId/ai-invest - AI invests using RBC InvestEase API
+router.post('/:sessionId/ai-invest', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { rbcClientId, rbcPortfolioId, token, roundNumber } = req.body;
+
+    console.log('🤖 AI Invest Request:', { sessionId, rbcClientId, rbcPortfolioId, roundNumber });
+
+    const session = rbcTradingSessions.get(sessionId);
+    if (!session) {
+      console.log('❌ Session not found:', sessionId);
+      return res.status(404).json({
+        error: 'Trading session not found',
+        message: 'The requested trading session does not exist',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (session.status !== 'active') {
+      console.log('❌ Session not active:', session.status);
+      return res.status(400).json({
+        error: 'Session not active',
+        message: 'Cannot invest in a completed session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    try {
+      console.log('🤖 Getting client and portfolio from RBC API...');
+      // Get current client and portfolio from RBC API
+      const client = await makeRBCApiCall(`/clients/${rbcClientId}?token=${token}`, 'GET');
+      const portfolio = await makeRBCApiCall(`/portfolios/${rbcPortfolioId}?token=${token}`, 'GET');
+
+      console.log('🤖 RBC API Response:', { client: client.cash, portfolio: portfolio.current_value });
+
+      // Calculate investment amount (RBC InvestEase strategy)
+      const investmentAmount = Math.min(client.cash * 0.1, 1000); // Invest 10% of cash or max $1000
+      
+      console.log('🤖 Investment calculation:', { 
+        clientCash: client.cash, 
+        investmentAmount, 
+        canInvest: investmentAmount > 100 && client.cash >= investmentAmount 
+      });
+      
+      if (investmentAmount > 100 && client.cash >= investmentAmount) {
+        // Transfer funds to portfolio (this triggers RBC's automatic investing)
+        const transferResult = await makeRBCApiCall(
+          `/portfolios/${rbcPortfolioId}/transfer`,
+          'POST',
+          { amount: investmentAmount },
+          token
+        );
+
+        // Get updated portfolio value
+        const updatedPortfolio = await makeRBCApiCall(`/portfolios/${rbcPortfolioId}?token=${token}`, 'GET');
+        
+        // Record the AI trade
+        const trade = {
+          id: `rbc-investease-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          action: 'BUY',
+          stock: 'RBC_PORTFOLIO',
+          shares: Math.floor(investmentAmount / 100), // Approximate shares
+          price: 100, // Base price for portfolio
+          timestamp: Date.now(),
+          investmentAmount: investmentAmount,
+          portfolioValue: updatedPortfolio.current_value
+        };
+
+        session.trades.push(trade);
+        session.currentValue = updatedPortfolio.current_value;
+        session.lastUpdated = new Date().toISOString();
+
+        res.json({
+          success: true,
+          message: 'AI investment completed using RBC InvestEase',
+          trade,
+          session: {
+            sessionId: session.sessionId,
+            currentValue: session.currentValue,
+            startValue: session.startValue,
+            totalReturn: session.currentValue - session.startValue,
+            totalReturnPercent: ((session.currentValue - session.startValue) / session.startValue) * 100,
+            trades: session.trades
+          },
+          timestamp: new Date().toISOString()
+        });
+
+      } else {
+        // Not enough cash to invest, just simulate growth
+        const growthRate = 0.001; // 0.1% per update
+        const newValue = session.currentValue * (1 + growthRate + (Math.random() - 0.5) * 0.002);
+        session.currentValue = newValue;
+        session.lastUpdated = new Date().toISOString();
+
+        res.json({
+          success: true,
+          message: 'AI portfolio growth simulated (insufficient cash for investment)',
+          session: {
+            sessionId: session.sessionId,
+            currentValue: session.currentValue,
+            startValue: session.startValue,
+            totalReturn: session.currentValue - session.startValue,
+            totalReturnPercent: ((session.currentValue - session.startValue) / session.startValue) * 100
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+
+    } catch (rbcError) {
+      console.error('RBC API Error during AI investment:', rbcError);
+      
+      // Fallback to simulated growth
+      const growthRate = 0.001;
+      const newValue = session.currentValue * (1 + growthRate + (Math.random() - 0.5) * 0.002);
+      session.currentValue = newValue;
+      session.lastUpdated = new Date().toISOString();
+
+      res.json({
+        success: true,
+        message: 'AI portfolio growth simulated (RBC API fallback)',
+        session: {
+          sessionId: session.sessionId,
+          currentValue: session.currentValue,
+          startValue: session.startValue,
+          totalReturn: session.currentValue - session.startValue,
+          totalReturnPercent: ((session.currentValue - session.startValue) / session.startValue) * 100
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error('Error in AI investment:', error);
+    res.status(500).json({
+      error: 'Failed to process AI investment',
       message: error.message,
       timestamp: new Date().toISOString()
     });

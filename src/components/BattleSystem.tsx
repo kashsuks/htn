@@ -88,8 +88,11 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
 
     // Check if battle is complete
     setTimeout(() => {
-      if (currentRound >= MAX_ROUNDS || playerScore >= 2 || aiScore >= 2) {
-        console.log('🏁 Battle complete!', { currentRound, playerScore, aiScore });
+      const newPlayerScore = winner === 'player' ? playerScore + 1 : playerScore;
+      const newAiScore = winner === 'ai' ? aiScore + 1 : aiScore;
+      
+      if (currentRound >= MAX_ROUNDS || newPlayerScore >= 2 || newAiScore >= 2) {
+        console.log('🏁 Battle complete!', { currentRound, newPlayerScore, newAiScore });
         setBattlePhase('complete');
         onBattleComplete(newResults);
       } else {
