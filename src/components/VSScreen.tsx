@@ -1,11 +1,14 @@
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
 
 interface VSScreenProps {
   onComplete: () => void;
+  playerScore?: number;
+  aiScore?: number;
+  roundNumber?: number;
 }
 
-export function VSScreen({ onComplete }: VSScreenProps) {
+export function VSScreen({ onComplete, playerScore = 0, aiScore = 0, roundNumber = 1 }: VSScreenProps) {
   const [showVS, setShowVS] = useState(false);
 
   useEffect(() => {
@@ -83,8 +86,20 @@ export function VSScreen({ onComplete }: VSScreenProps) {
           transition={{ delay: 1, duration: 0.5 }}
           className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-white text-3xl font-bold"
         >
-          STOCK BATTLE COMMENCES!
+          ROUND {roundNumber} - AI TURN!
         </motion.div>
+
+        {/* Player Score Display */}
+        {playerScore > 0 && (
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+            className="absolute bottom-32 left-1/2 transform -translate-x-1/2 text-white text-xl"
+          >
+            Player Score: ${playerScore.toLocaleString()}
+          </motion.div>
+        )}
       </div>
     </div>
   );

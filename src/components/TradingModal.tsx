@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from './ui/button';
 import { StockChart } from './StockChart';
@@ -26,6 +27,7 @@ interface TradingModalProps {
   onSelectStock: (stock: Stock) => void;
   onBuy: (stock: Stock) => void;
   onSell: (stock: Stock) => void;
+  isTrading?: boolean;
 }
 
 export function TradingModal({
@@ -38,7 +40,8 @@ export function TradingModal({
   selectedStock,
   onSelectStock,
   onBuy,
-  onSell
+  onSell,
+  isTrading = false
 }: TradingModalProps) {
   const currentPrice = chartData[chartData.length - 1]?.price || selectedStock.price;
   const isPositive = chartData.length > 1 ? 
@@ -117,9 +120,9 @@ export function TradingModal({
                             e.stopPropagation();
                             onBuy(stock);
                           }}
-                          disabled={cash < stock.price}
+                          disabled={cash < stock.price || isTrading}
                         >
-                          BUY ${stock.price.toFixed(2)}
+                          {isTrading ? '⏳' : 'BUY'} ${stock.price.toFixed(2)}
                         </Button>
                         <Button
                           size="sm"
@@ -129,9 +132,9 @@ export function TradingModal({
                             e.stopPropagation();
                             onSell(stock);
                           }}
-                          disabled={!portfolio[stock.symbol] || portfolio[stock.symbol] === 0}
+                          disabled={!portfolio[stock.symbol] || portfolio[stock.symbol] === 0 || isTrading}
                         >
-                          SELL
+                          {isTrading ? '⏳' : 'SELL'}
                         </Button>
                       </div>
                     </motion.div>

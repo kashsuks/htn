@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 
@@ -5,9 +6,19 @@ interface ResultsScreenProps {
   playerScore: number;
   aiScore: number;
   onRestart: () => void;
+  roundNumber?: number;
+  isFinalRound?: boolean;
+  overallWinner?: 'player' | 'ai' | 'tie';
 }
 
-export function ResultsScreen({ playerScore, aiScore, onRestart }: ResultsScreenProps) {
+export function ResultsScreen({ 
+  playerScore, 
+  aiScore, 
+  onRestart, 
+  roundNumber = 1, 
+  isFinalRound = false,
+  overallWinner 
+}: ResultsScreenProps) {
   const playerWon = playerScore > aiScore;
   const winner = playerWon ? 'PLAYER' : 'AI TRADER';
   const winnerIcon = playerWon ? '👤' : '🤖';
@@ -35,13 +46,15 @@ export function ResultsScreen({ playerScore, aiScore, onRestart }: ResultsScreen
             transition={{ duration: 2, repeat: Infinity }}
             className="text-6xl font-bold text-yellow-400 mb-2"
           >
-            {winner} WINS!
+            {isFinalRound ? 'BATTLE COMPLETE!' : `ROUND ${roundNumber} - ${winner} WINS!`}
           </motion.div>
         </motion.div>
 
         {/* Score Display */}
         <div className="bg-black/40 border-4 border-yellow-400 rounded-lg p-8 mb-8">
-          <div className="text-3xl font-bold mb-6 text-yellow-400">FINAL SCORES</div>
+          <div className="text-3xl font-bold mb-6 text-yellow-400">
+            {isFinalRound ? 'FINAL SCORES' : `ROUND ${roundNumber} SCORES`}
+          </div>
           
           <div className="grid grid-cols-3 gap-8 items-center">
             {/* Player Score */}
@@ -128,13 +141,13 @@ export function ResultsScreen({ playerScore, aiScore, onRestart }: ResultsScreen
           animate={{ scale: 1 }}
           transition={{ delay: 2, duration: 0.3 }}
         >
-          <Button
-            onClick={onRestart}
-            size="lg"
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-xl px-8 py-4"
-          >
-            🔄 BATTLE AGAIN
-          </Button>
+            <Button
+              onClick={onRestart}
+              size="lg"
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-xl px-8 py-4"
+            >
+              {isFinalRound ? '🔄 NEW BATTLE' : '⏭️ CONTINUE'}
+            </Button>
         </motion.div>
 
         {/* Floating elements */}
