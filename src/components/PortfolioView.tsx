@@ -132,11 +132,46 @@ export function PortfolioView({
             </div>
           )}
 
-          {portfolioEntries.length === 0 && (
+          {/* Stock Market Display - Show for both player and AI */}
+          <div className="mb-6">
+            <div className="text-lg neon-green mb-4">📈 MARKET PRICES</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {stocks.map((stock) => (
+                <motion.div
+                  key={stock.symbol}
+                  whileHover={{ scale: 1.02 }}
+                  className="border-2 neon-border-green p-4" style={{backgroundColor: 'rgba(0, 255, 0, 0.1)'}}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="neon-green">{stock.symbol}</div>
+                      <div className="text-sm text-white">{stock.name}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="neon-yellow">${stock.price.toFixed(2)}</div>
+                      <div className={`text-sm ${stock.change >= 0 ? 'neon-blue' : 'neon-red'}`}>
+                        {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {portfolioEntries.length === 0 && !isAITurn && (
             <div className="text-center text-white mb-6 border-2 neon-border-purple p-6" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>
               <div className="text-4xl mb-2">📊</div>
               <div className="neon-purple">NO INVESTMENTS YET</div>
               <div className="text-sm text-white">CLICK BUY/SELL TO START TRADING!</div>
+            </div>
+          )}
+
+          {isAITurn && (
+            <div className="text-center text-white mb-6 border-2 neon-border-cyan p-6" style={{backgroundColor: 'rgba(0, 255, 255, 0.1)'}}>
+              <div className="text-4xl mb-2">🤖</div>
+              <div className="neon-cyan">AI IS ANALYZING MARKET AND EXECUTING TRADES</div>
+              <div className="text-sm text-white">WATCH THE AI TRADING FEED BELOW</div>
             </div>
           )}
         </div>

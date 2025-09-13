@@ -1,41 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { StockTradingGame } from './components/StockTradingGame';
-import { VSScreen } from './components/VSScreen';
-import { ResultsScreen } from './components/ResultsScreen';
+import { GameSetup, GameConfig } from './components/GameSetup';
+import { BattleSystem } from './components/BattleSystem';
 import { Button } from './components/ui/button';
+import { gameApi } from './services/gameApi';
 
-type GamePhase = 'start' | 'player' | 'vs' | 'ai' | 'results';
+type GamePhase = 'start' | 'setup' | 'battle' | 'complete';
+
+interface RoundResult {
+  round: number;
+  playerScore: number;
+  aiScore: number;
+  winner: 'player' | 'ai' | 'tie';
+}
 
 export default function App() {
   const [gamePhase, setGamePhase] = useState<GamePhase>('start');
-  const [playerScore, setPlayerScore] = useState(10000);
-  const [aiScore, setAiScore] = useState(10000);
+  const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
+  const [battleResults, setBattleResults] = useState<RoundResult[]>([]);
+
+  // Initialize game state
+  useEffect(() => {
+    gameApi.initializeFromStorage();
+  }, []);
 
   const startGame = () => {
-    setGamePhase('player');
-    setPlayerScore(10000);
-    setAiScore(10000);
+    setGamePhase('setup');
   };
 
-  const handlePlayerComplete = (score: number) => {
-    setPlayerScore(score);
-    setGamePhase('vs');
+  const handleGameSetup = (config: GameConfig) => {
+    setGameConfig(config);
+    setGamePhase('battle');
   };
 
-  const handleVSComplete = () => {
-    setGamePhase('ai');
-  };
-
-  const handleAIComplete = (score: number) => {
-    // AI gets a slight advantage by making it perform 10-15% better
-    const enhancedScore = score * (1.1 + Math.random() * 0.05);
-    setAiScore(enhancedScore);
-    setGamePhase('results');
+  const handleBattleComplete = (results: RoundResult[]) => {
+    setBattleResults(results);
+    setGamePhase('complete');
   };
 
   const restartGame = () => {
     setGamePhase('start');
+    setGameConfig(null);
+    setBattleResults([]);
+    gameApi.clearAuth();
   };
 
   if (gamePhase === 'start') {
@@ -70,13 +77,13 @@ export default function App() {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">👤</span>
                   <div>
-                    <strong className="neon-blue">ROUND 1:</strong> You have 30 seconds to trade stocks and maximize your portfolio value
+                    <strong className="neon-blue">SETUP:</strong> Choose your investment goal, timeframe, and target amount
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">⚡</span>
                   <div>
-                    <strong className="neon-blue">DYNAMIC MARKET:</strong> Watch breaking news and character announcements that affect stock prices
+                    <strong className="neon-blue">REAL-TIME:</strong> 1 second = 0.5 days in game time
                   </div>
                 </div>
               </div>
@@ -84,13 +91,13 @@ export default function App() {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🤖</span>
                   <div>
-                    <strong className="neon-yellow">ROUND 2:</strong> AI Trader takes its turn with the same market conditions
+                    <strong className="neon-yellow">BATTLE:</strong> Best of 3 rounds vs RBC InvestEase AI
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🏆</span>
                   <div>
-                    <strong className="neon-yellow">VICTORY:</strong> Highest portfolio value wins the battle!
+                    <strong className="neon-yellow">VICTORY:</strong> Reach your goal faster than the AI!
                   </div>
                 </div>
               </div>
@@ -106,19 +113,19 @@ export default function App() {
           >
             <div className="border-2 neon-border-blue p-4" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
               <div className="text-3xl mb-2">📈</div>
-              <div className="pixel-font">LIVE CHARTS</div>
+              <div className="pixel-font">RBC API</div>
             </div>
             <div className="border-2 neon-border-pink p-4" style={{backgroundColor: 'rgba(255, 0, 233, 0.1)'}}>
-              <div className="text-3xl mb-2">🚨</div>
-              <div className="pixel-font">BREAKING NEWS</div>
+              <div className="text-3xl mb-2">🎯</div>
+              <div className="pixel-font">GOAL SETTING</div>
             </div>
             <div className="border-2 neon-border-yellow p-4" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}>
-              <div className="text-3xl mb-2">💬</div>
-              <div className="pixel-font">MARKET EVENTS</div>
+              <div className="text-3xl mb-2">⚡</div>
+              <div className="pixel-font">REAL-TIME</div>
             </div>
             <div className="border-2 neon-border-purple p-4" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>
-              <div className="text-3xl mb-2">🤖</div>
-              <div className="pixel-font">AI OPPONENT</div>
+              <div className="text-3xl mb-2">🥊</div>
+              <div className="pixel-font">BEST OF 3</div>
             </div>
           </motion.div>
 
@@ -187,25 +194,75 @@ export default function App() {
     );
   }
 
-  if (gamePhase === 'player') {
-    return <StockTradingGame isAITurn={false} onComplete={handlePlayerComplete} />;
+  if (gamePhase === 'setup') {
+    return <GameSetup onGameStart={handleGameSetup} />;
   }
 
-  if (gamePhase === 'vs') {
-    return <VSScreen onComplete={handleVSComplete} />;
-  }
-
-  if (gamePhase === 'ai') {
-    return <StockTradingGame isAITurn={true} onComplete={handleAIComplete} />;
-  }
-
-  if (gamePhase === 'results') {
+  if (gamePhase === 'battle' && gameConfig) {
     return (
-      <ResultsScreen 
-        playerScore={playerScore} 
-        aiScore={aiScore} 
-        onRestart={restartGame} 
+      <BattleSystem 
+        gameConfig={gameConfig} 
+        onBattleComplete={handleBattleComplete} 
       />
+    );
+  }
+
+  if (gamePhase === 'complete') {
+    const playerWins = battleResults.filter(r => r.winner === 'player').length;
+    const aiWins = battleResults.filter(r => r.winner === 'ai').length;
+    const finalWinner = playerWins > aiWins ? 'player' : aiWins > playerWins ? 'ai' : 'tie';
+    
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font" style={{backgroundColor: '#061625'}}>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-4xl mx-auto p-8"
+        >
+          <div className={`text-8xl mb-8 ${
+            finalWinner === 'player' ? 'text-green-400' : 
+            finalWinner === 'ai' ? 'text-red-400' : 'text-yellow-400'
+          }`}>
+            {finalWinner === 'player' ? '🏆 VICTORY!' : 
+             finalWinner === 'ai' ? '💀 DEFEAT!' : '🤝 DRAW!'}
+          </div>
+          
+          <div className="text-3xl mb-8 neon-blue">
+            FINAL SCORE: {playerWins} - {aiWins}
+          </div>
+
+          <div className="border-4 neon-border-yellow p-8 mb-8" style={{backgroundColor: 'rgba(6, 22, 37, 0.8)'}}>
+            <h3 className="text-2xl mb-6 neon-yellow">BATTLE SUMMARY</h3>
+            <div className="space-y-4">
+              {battleResults.map((result, index) => (
+                <div key={index} className="flex justify-between items-center p-4 border-2 border-gray-600 rounded">
+                  <div className="text-lg">Round {result.round}</div>
+                  <div className="text-lg">
+                    ${result.playerScore.toLocaleString()} vs ${result.aiScore.toLocaleString()}
+                  </div>
+                  <div className={`font-bold ${
+                    result.winner === 'player' ? 'text-green-400' : 
+                    result.winner === 'ai' ? 'text-red-400' : 'text-yellow-400'
+                  }`}>
+                    {result.winner === 'player' ? '👤 WON' : 
+                     result.winner === 'ai' ? '🤖 WON' : 'TIE'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={restartGame}
+            size="lg"
+            className="border-4 neon-border-yellow text-black pixel-font text-3xl px-12 py-6 bg-yellow-400 hover:bg-yellow-300"
+            style={{backgroundColor: '#fff900'}}
+          >
+            🔄 PLAY AGAIN
+          </Button>
+        </motion.div>
+      </div>
     );
   }
 
