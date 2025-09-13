@@ -52,7 +52,7 @@ export default function App() {
             <div className="text-8xl mb-4 neon-pink">
               STOCK FIGHTER
             </div>
-            <div className="text-4xl neon-blue">
+            <div className="text-4xl neon-blue font-normal">
               THE ULTIMATE TRADING BATTLE ARENA
             </div>
           </motion.div>
@@ -97,21 +97,55 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* Start Button */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 1.5, duration: 0.3 }}
-          >
-            <Button
-              onClick={startGame}
-              size="lg"
-              className="border-4 neon-border-yellow text-black pixel-font text-3xl px-12 py-6 bg-yellow-400 hover:bg-yellow-300"
-              style={{backgroundColor: '#fff900'}}
+          <div className="space-y-4">
+            {/* How to Play Button */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 1.5, duration: 0.3 }}
             >
-              START BATTLE
-            </Button>
-          </motion.div>
+              <Button
+                // onClick={startGame}
+                size="lg"
+                className="border-4 neon-border-purple text-white pixel-font text-3xl px-12 py-6 bg-purple-400 hover:bg-purple-300"
+                style={{backgroundColor: '#6100ff'}}
+              >
+                How to play
+              </Button>
+            </motion.div>
+
+            {/* Leaderboard Button */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 1.5, duration: 0.3 }}
+            >
+              <Button
+                // onClick={startGame}
+                size="lg"
+                className="border-4 neon-border-purple text-white pixel-font text-3xl px-12 py-6 bg-purple-400 hover:bg-purple-300"
+                style={{backgroundColor: '#6100ff'}}
+              >
+                Leaderboard
+              </Button>
+            </motion.div>
+
+            {/* Start Button */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 1.5, duration: 0.3 }}
+            >
+              <Button
+                onClick={startGame}
+                size="lg"
+                className="border-4 neon-border-yellow text-black pixel-font text-3xl px-12 py-6 bg-yellow-400 hover:bg-yellow-300"
+                style={{backgroundColor: '#fff900'}}
+              >
+                START BATTLE
+              </Button>
+            </motion.div>
+          </div>
         </div>
       </div>
     );
