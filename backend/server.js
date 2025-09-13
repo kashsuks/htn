@@ -10,9 +10,8 @@ const rbcTradingRoutes = require('./routes/rbc-trading');
 const userRoutes = require('./routes/users');
 const stockEventRoutes = require('./routes/stock-events');
 
-// Use MongoDB for data storage, fallback to mock if connection fails
+// Use MongoDB for data storage
 const mongoDBService = require('./services/mongodb');
-const mockDynamoDBService = require('./services/mock-dynamodb');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -68,8 +67,6 @@ app.use((error, req, res, next) => {
 
 // Initialize MongoDB connection and start server
 async function startServer() {
-  let dbService = mongoDBService;
-  
   try {
     // Try to connect to MongoDB with timeout
     console.log('🔄 Attempting to connect to MongoDB...');
@@ -82,9 +79,9 @@ async function startServer() {
     console.log('✅ MongoDB connected successfully');
     
   } catch (error) {
-    console.warn('⚠️ MongoDB connection failed, falling back to mock database:', error.message);
-    console.log('📝 Using mock DynamoDB service for development');
-    dbService = mockDynamoDBService;
+    console.error('❌ MongoDB connection failed:', error.message);
+    console.error('🚫 Server cannot start without database connection');
+    process.exit(1);
   }
   
   // Start the server
@@ -93,7 +90,7 @@ async function startServer() {
     console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-    console.log(`🗄️ Database: ${dbService === mongoDBService ? 'MongoDB' : 'Mock DynamoDB'}`);
+    console.log(`🗄️ Database: MongoDB`);
   });
 }
 

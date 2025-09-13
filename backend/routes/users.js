@@ -1,14 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const dbService = require('../services/mongodb');
-const mockDynamoDBService = require('../services/mock-dynamodb');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
-
-// Check MongoDB connection and fallback if needed
-dbService.connect().catch(() => {
-  console.log('📝 Falling back to mock database for users route');
-  dbService = mockDynamoDBService;
-});
 
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
