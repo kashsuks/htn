@@ -1,9 +1,16 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { motion } from 'motion/react';
 import { GameSetup, GameConfig } from './components/GameSetup';
 import { BattleSystem } from './components/BattleSystem';
 import { Button } from './components/ui/button';
 import { gameApi } from './services/gameApi';
+import { AuthProvider } from './contexts/AuthContext';
+import LoginButton from './components/auth/LoginButton';
+import LogoutButton from './components/auth/LogoutButton';
+import UserProfile from './components/auth/UserProfile';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 type GamePhase = 'start' | 'setup' | 'battle' | 'complete';
 
@@ -14,10 +21,63 @@ interface RoundResult {
   winner: 'player' | 'ai' | 'tie';
 }
 
-export default function App() {
+// Navigation Header Component
+const NavigationHeader: React.FC = () => {
+  const { isAuthenticated, user } = useAuth0();
+  const navigate = useNavigate();
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-gray-700">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div 
+          className="text-2xl font-bold text-yellow-400 cursor-pointer hover:text-yellow-300 transition-colors"
+          onClick={() => navigate('/')}
+        >
+          🚀 STOCK FIGHTER
+        </div>
+        <div className="flex items-center gap-4">
+          {isAuthenticated ? (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/profile')}
+                className="text-white hover:text-yellow-400"
+              >
+                👤 Profile
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/game')}
+                className="text-white hover:text-yellow-400"
+              >
+                🎮 Play Game
+              </Button>
+              <div className="flex items-center gap-2">
+                <img
+                  src={user?.picture}
+                  alt={user?.name}
+                  className="w-8 h-8 rounded-full"
+                />
+                <span className="text-white">{user?.name}</span>
+              </div>
+              <LogoutButton />
+            </>
+          ) : (
+            <LoginButton />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Game Component
+const GameComponent: React.FC = () => {
   const [gamePhase, setGamePhase] = useState<GamePhase>('start');
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
   const [battleResults, setBattleResults] = useState<RoundResult[]>([]);
+  const { isAuthenticated } = useAuth0();
+  const navigate = useNavigate();
 
   // Initialize game state
   useEffect(() => {
@@ -25,6 +85,10 @@ export default function App() {
   }, []);
 
   const startGame = () => {
+    if (!isAuthenticated) {
+      navigate('/');
+      return;
+    }
     setGamePhase('setup');
   };
 
@@ -47,7 +111,7 @@ export default function App() {
 
   if (gamePhase === 'start') {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font" style={{backgroundColor: '#061625'}}>
+      <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font pt-20" style={{backgroundColor: '#061625'}}>
         <div className="text-center max-w-4xl mx-auto p-8">
           {/* Title */}
           <motion.div
@@ -104,31 +168,6 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* Features */}
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1, duration: 0.6 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
-          >
-            <div className="border-2 neon-border-blue p-4" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
-              <div className="text-3xl mb-2">📈</div>
-              <div className="pixel-font">RBC API</div>
-            </div>
-            <div className="border-2 neon-border-pink p-4" style={{backgroundColor: 'rgba(255, 0, 233, 0.1)'}}>
-              <div className="text-3xl mb-2">🎯</div>
-              <div className="pixel-font">GOAL SETTING</div>
-            </div>
-            <div className="border-2 neon-border-yellow p-4" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}>
-              <div className="text-3xl mb-2">⚡</div>
-              <div className="pixel-font">REAL-TIME</div>
-            </div>
-            <div className="border-2 neon-border-purple p-4" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>
-              <div className="text-3xl mb-2">🥊</div>
-              <div className="pixel-font">BEST OF 3</div>
-            </div>
-          </motion.div>
-
           {/* Start Button */}
           <motion.div
             initial={{ scale: 0 }}
@@ -143,51 +182,6 @@ export default function App() {
             >
               🥊 START BATTLE
             </Button>
-          </motion.div>
-
-          {/* Floating animations */}
-          <motion.div
-            animate={{ 
-              y: [0, -20, 0],
-              rotate: [0, 10, -10, 0]
-            }}
-            transition={{ 
-              duration: 4, 
-              repeat: Infinity,
-              repeatType: "reverse"
-            }}
-            className="absolute top-20 left-20 text-6xl opacity-30"
-          >
-            💰
-          </motion.div>
-          
-          <motion.div
-            animate={{ 
-              y: [0, 15, 0],
-              x: [0, 10, 0]
-            }}
-            transition={{ 
-              duration: 5, 
-              repeat: Infinity,
-              repeatType: "reverse"
-            }}
-            className="absolute top-32 right-32 text-5xl opacity-30"
-          >
-            📊
-          </motion.div>
-          
-          <motion.div
-            animate={{ 
-              rotate: [0, 360]
-            }}
-            transition={{ 
-              duration: 8, 
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute bottom-20 left-32 text-4xl opacity-30"
-          >
-            ⚡
           </motion.div>
         </div>
       </div>
@@ -213,7 +207,7 @@ export default function App() {
     const finalWinner = playerWins > aiWins ? 'player' : aiWins > playerWins ? 'ai' : 'tie';
     
     return (
-      <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font" style={{backgroundColor: '#061625'}}>
+      <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font pt-20" style={{backgroundColor: '#061625'}}>
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -232,27 +226,6 @@ export default function App() {
             FINAL SCORE: {playerWins} - {aiWins}
           </div>
 
-          <div className="border-4 neon-border-yellow p-8 mb-8" style={{backgroundColor: 'rgba(6, 22, 37, 0.8)'}}>
-            <h3 className="text-2xl mb-6 neon-yellow">BATTLE SUMMARY</h3>
-            <div className="space-y-4">
-              {battleResults.map((result, index) => (
-                <div key={index} className="flex justify-between items-center p-4 border-2 border-gray-600 rounded">
-                  <div className="text-lg">Round {result.round}</div>
-                  <div className="text-lg">
-                    ${result.playerScore.toLocaleString()} vs ${result.aiScore.toLocaleString()}
-                  </div>
-                  <div className={`font-bold ${
-                    result.winner === 'player' ? 'text-green-400' : 
-                    result.winner === 'ai' ? 'text-red-400' : 'text-yellow-400'
-                  }`}>
-                    {result.winner === 'player' ? '👤 WON' : 
-                     result.winner === 'ai' ? '🤖 WON' : 'TIE'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <Button
             onClick={restartGame}
             size="lg"
@@ -267,4 +240,102 @@ export default function App() {
   }
 
   return null;
+};
+
+// Home Page Component
+const HomePage: React.FC = () => {
+  const { isAuthenticated } = useAuth0();
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font pt-20" style={{backgroundColor: '#061625'}}>
+      <div className="text-center max-w-4xl mx-auto p-8">
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ duration: 1, type: "spring", bounce: 0.4 }}
+          className="mb-12"
+        >
+          <div className="text-8xl mb-4 neon-pink">
+            STOCK FIGHTER
+          </div>
+          <div className="text-2xl neon-blue">
+            THE ULTIMATE TRADING BATTLE ARENA
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+          className="border-4 neon-border-blue p-8 mb-8" style={{backgroundColor: 'rgba(6, 22, 37, 0.8)'}}
+        >
+          <h2 className="text-3xl mb-6 neon-yellow">WELCOME TO THE ARENA</h2>
+          <p className="text-xl mb-6">
+            Battle against RBC InvestEase AI in real-time trading competitions. 
+            Track your progress, earn achievements, and climb the leaderboard!
+          </p>
+          
+          <div className="flex flex-col gap-4 max-w-md mx-auto">
+            {isAuthenticated ? (
+              <>
+                <Button
+                  onClick={() => navigate('/game')}
+                  size="lg"
+                  className="border-4 neon-border-yellow text-black pixel-font text-2xl px-8 py-4 bg-yellow-400 hover:bg-yellow-300"
+                >
+                  🥊 START BATTLE
+                </Button>
+                <Button
+                  onClick={() => navigate('/profile')}
+                  variant="outline"
+                  size="lg"
+                  className="border-4 neon-border-blue text-blue-400 pixel-font text-xl px-8 py-4"
+                >
+                  👤 VIEW PROFILE
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-lg text-gray-300">
+                  Sign in to track your progress and compete on the leaderboard!
+                </p>
+                <LoginButton />
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// Main App Component with Routes
+export default function App() {
+  return (
+    <AuthProvider>
+      <div className="min-h-screen">
+        <NavigationHeader />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route 
+            path="/game" 
+            element={
+              <ProtectedRoute>
+                <GameComponent />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <UserProfile />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </div>
+    </AuthProvider>
+  );
 }

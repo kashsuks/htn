@@ -7,6 +7,7 @@ require('dotenv').config();
 const rbcRoutes = require('./routes/rbc');
 const gameRoutes = require('./routes/game');
 const rbcTradingRoutes = require('./routes/rbc-trading');
+const userRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3003',
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(morgan('combined'));
@@ -36,6 +37,8 @@ app.get('/health', (req, res) => {
 app.use('/api/rbc', rbcRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/rbc-trading', rbcTradingRoutes);
+app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

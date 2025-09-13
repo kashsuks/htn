@@ -6,3 +6,5 @@
 /backend/logs/error.log
 /backend/logs/combined.log
 /backend/logs/error.log
+.env
+.env.example
