@@ -77,8 +77,10 @@ export default function App() {
                 <DialogTrigger asChild>
                   <Button
                     size="lg"
-                    className="border-4 neon-border-purple text-white pixel-font text-3xl py-6 bg-purple-400 hover:bg-purple-300 w-full"
+                    className="border-4 neon-border-purple text-white pixel-font text-3xl py-6 w-full cursor-pointer transition-colors duration-200"
                     style={{ backgroundColor: '#6100ff' }}
+                    onMouseEnter={(e: { target: { style: { backgroundColor: string; }; }; }) => e.target.style.backgroundColor = '#4a00cc'}
+                    onMouseLeave={(e: { target: { style: { backgroundColor: string; }; }; }) => e.target.style.backgroundColor = '#6100ff'}
                   >
                     How to play
                   </Button>
@@ -129,10 +131,11 @@ export default function App() {
               transition={{ delay: 1.5, duration: 0.3 }}
             >
               <Button
-                // onClick={startGame}
                 size="lg"
-                className="w-full border-4 neon-border-purple text-white pixel-font text-3xl py-6 bg-purple-400 hover:bg-purple-300"
-                style={{backgroundColor: '#6100ff'}}
+                className="border-4 neon-border-purple text-white pixel-font text-3xl py-6 w-full cursor-pointer transition-colors duration-200"
+                style={{ backgroundColor: '#6100ff' }}
+                onMouseEnter={(e: { target: { style: { backgroundColor: string; }; }; }) => e.target.style.backgroundColor = '#4a00cc'}
+                onMouseLeave={(e: { target: { style: { backgroundColor: string; }; }; }) => e.target.style.backgroundColor = '#6100ff'}
               >
                 Leaderboard
               </Button>
@@ -147,8 +150,10 @@ export default function App() {
               <Button
                 onClick={startGame}
                 size="lg"
-                className="w-full border-4 neon-border-yellow text-black pixel-font text-3xl py-6 bg-yellow-400 hover:bg-yellow-300"
-                style={{backgroundColor: '#fff900'}}
+                className="w-full border-4 neon-border-yellow text-black pixel-font text-3xl py-6 cursor-pointer transition-colors duration-200"
+                style={{ backgroundColor: '#fff900' }}
+                onMouseEnter={(e: { target: { style: { backgroundColor: string; }; }; }) => e.target.style.backgroundColor = '#cccc00'}
+                onMouseLeave={(e: { target: { style: { backgroundColor: string; }; }; }) => e.target.style.backgroundColor = '#fff900'}
               >
                 START BATTLE
               </Button>

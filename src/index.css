@@ -419,6 +419,11 @@
   * {
     border-color: var(--border);
     outline-color: var(--ring);
+    cursor: url("data:image/svg+xml,%3csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='%23fff' stroke='%23000' stroke-width='0.5'%3e%3crect x='0' y='0' width='3' height='3'/%3e%3crect x='0' y='3' width='3' height='3'/%3e%3crect x='0' y='6' width='3' height='3'/%3e%3crect x='0' y='9' width='3' height='3'/%3e%3crect x='0' y='12' width='3' height='3'/%3e%3crect x='0' y='15' width='3' height='3'/%3e%3crect x='0' y='18' width='3' height='3'/%3e%3crect x='3' y='18' width='3' height='3'/%3e%3crect x='6' y='18' width='3' height='3'/%3e%3crect x='9' y='15' width='3' height='3'/%3e%3crect x='12' y='15' width='3' height='3'/%3e%3crect x='9' y='12' width='3' height='3'/%3e%3crect x='6' y='9' width='3' height='3'/%3e%3crect x='3' y='6' width='3' height='3'/%3e%3c/g%3e%3c/svg%3e") 0 0, auto;
+  }
+
+  button:hover, .cursor-pointer:hover {
+    cursor: url("data:image/svg+xml,%3csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3e%3cg fill='%2300e1ff' stroke='%23000' stroke-width='0.5'%3e%3crect x='0' y='0' width='3' height='3'/%3e%3crect x='0' y='3' width='3' height='3'/%3e%3crect x='0' y='6' width='3' height='3'/%3e%3crect x='0' y='9' width='3' height='3'/%3e%3crect x='0' y='12' width='3' height='3'/%3e%3crect x='0' y='15' width='3' height='3'/%3e%3crect x='0' y='18' width='3' height='3'/%3e%3crect x='3' y='18' width='3' height='3'/%3e%3crect x='6' y='18' width='3' height='3'/%3e%3crect x='9' y='15' width='3' height='3'/%3e%3crect x='12' y='15' width='3' height='3'/%3e%3crect x='9' y='12' width='3' height='3'/%3e%3crect x='6' y='9' width='3' height='3'/%3e%3crect x='3' y='6' width='3' height='3'/%3e%3c/g%3e%3c/svg%3e") 0 0, pointer;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
@@ -1405,14 +1410,6 @@
 
   .animate-pulse {
     animation: var(--animate-pulse);
-  }
-
-  .cursor-default {
-    cursor: default;
-  }
-
-  .cursor-pointer {
-    cursor: pointer;
   }
 
   .touch-none {
