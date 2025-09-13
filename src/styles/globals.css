@@ -151,7 +151,7 @@
 
   /* Pixelated Font */
   .pixel-font {
-    font-family: 'Maesto', 'Courier New', monospace;
+    font-family: 'Maesto', 'Courier New', monospace !important;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 2px;
