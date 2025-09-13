@@ -7,6 +7,8 @@ import { CharacterPopup } from './CharacterPopup';
 import { AITradingFeed } from './AITradingFeed';
 import { GameConfig } from './GameSetup';
 import { gameApi, Client, Portfolio } from '../services/gameApi';
+import { useAuth0 } from '@auth0/auth0-react';
+import { useAuthContext } from '../contexts/AuthContext';
 
 interface StockData {
   time: string;
@@ -47,6 +49,8 @@ const MOCK_STOCKS: Stock[] = [
 ];
 
 export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumber }: SimpleTradingGameProps) {
+  const { getAccessTokenSilently } = useAuth0();
+  const { updateGameStats } = useAuthContext();
   const [stocks, setStocks] = useState(MOCK_STOCKS);
   const [selectedStock, setSelectedStock] = useState(MOCK_STOCKS[0]);
   const [chartData, setChartData] = useState<StockData[]>([]);
@@ -248,6 +252,9 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
       console.log('👤 Player Final Value:', { cash, portfolioValue: totalValue - cash, finalValue });
     }
     
+    // Save game session to MongoDB
+    saveGameSession(finalValue);
+    
     // Defer the onComplete call to avoid setState during render
     setTimeout(() => {
       onComplete(finalValue);
@@ -358,6 +365,35 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
       clearInterval(aiTradeInterval);
     };
   }, [isAITurn, gameComplete, roundNumber, stocks]);
+
+  // Save game session to MongoDB
+  const saveGameSession = async (finalValue: number) => {
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/users/game-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sessionId: `single_${Date.now()}`,
+          gameType: 'single',
+          finalScore: finalValue,
+          isAITurn,
+          roundNumber,
+          duration: (totalTime - timeLeft) * 1000,
+          completedAt: new Date().toISOString()
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ Game session saved to MongoDB');
+      }
+    } catch (error) {
+      console.error('Error saving game session:', error);
+    }
+  };
 
   const handleEventTrigger = useCallback((impact: 'positive' | 'negative' | 'neutral') => {
     const multiplier = impact === 'positive' ? 1.05 : impact === 'negative' ? 0.95 : 1;

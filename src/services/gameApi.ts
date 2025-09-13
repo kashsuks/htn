@@ -1,5 +1,5 @@
 // Game API Service - Calls our backend which proxies to RBC InvestEase API
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 export interface TeamRegistration {
   team_name: string;

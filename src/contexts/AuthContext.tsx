@@ -129,15 +129,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/users/game-result`, {
+      const response = await fetch(`${API_BASE_URL}/users/game-stats`, {
         method: 'POST',
         headers,
         body: JSON.stringify(gameResult),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        setUserProfile(result.userProfile);
+        const updatedProfile = await response.json();
+        setUserProfile(updatedProfile);
       }
     } catch (error) {
       console.error('Error updating game stats:', error);
@@ -149,15 +149,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/users/profile/preferences`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_BASE_URL}/users/preferences`, {
+        method: 'PUT',
         headers,
         body: JSON.stringify({ preferences }),
       });
 
       if (response.ok) {
-        const profile = await response.json();
-        setUserProfile(profile);
+        const updatedProfile = await response.json();
+        setUserProfile(updatedProfile);
       }
     } catch (error) {
       console.error('Error updating preferences:', error);
@@ -165,27 +165,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getLeaderboard = async () => {
-    // For now, leaderboard redirects to profile - no API call needed
-    console.log('Leaderboard functionality not implemented yet - redirecting to profile');
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/leaderboard`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    }
     return [];
   };
 
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchUserProfile();
-    } else {
-      setUserProfile(null);
     }
   }, [isAuthenticated, user]);
 
-  const value = {
-    userProfile,
-    loading,
-    createOrUpdateProfile,
-    updateGameStats,
-    updatePreferences,
-    getLeaderboard,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        userProfile,
+        loading,
+        createOrUpdateProfile,
+        updateGameStats,
+        updatePreferences,
+        getLeaderboard,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
