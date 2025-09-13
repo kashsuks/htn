@@ -144,7 +144,7 @@ RBC_API_SECRET=your_rbc_api_secret_here
 RBC_BASE_URL=https://api.rbc.com/investease
 
 # Server Configuration
-PORT=3001
+PORT=3000
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:3000
 
@@ -224,7 +224,7 @@ npm start
 ### Docker (Optional)
 ```bash
 docker build -t investease-backend .
-docker run -p 3001:3001 investease-backend
+docker run -p 3000:3000 investease-backend
 ```
 
 ## 📝 Example Usage

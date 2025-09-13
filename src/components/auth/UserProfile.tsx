@@ -10,16 +10,7 @@ import LogoutButton from './LogoutButton';
 
 export const UserProfile: React.FC = () => {
   const { user, isAuthenticated } = useAuth0();
-  const { userProfile, loading, getLeaderboard } = useAuthContext();
-  const [leaderboard, setLeaderboard] = React.useState<any[]>([]);
-
-  React.useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const data = await getLeaderboard();
-      setLeaderboard(data);
-    };
-    fetchLeaderboard();
-  }, [getLeaderboard]);
+  const { userProfile, loading } = useAuthContext();
 
   if (!isAuthenticated || !user) {
     return null;
@@ -206,40 +197,15 @@ export const UserProfile: React.FC = () => {
                 <CardTitle className="text-orange-400">🥇 Global Leaderboard</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {leaderboard.map((player, index) => (
-                    <div
-                      key={player.userId}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        player.userId === userProfile?.userId ? 'bg-yellow-400/20 border border-yellow-400' : 'bg-gray-800'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
-                        </div>
-                        <img
-                          src={player.picture}
-                          alt={player.name}
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <div>
-                          <div className="font-bold">{player.name}</div>
-                          <div className="text-sm text-gray-400">
-                            {player.gameStats?.totalGamesPlayed || 0} games played
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-green-400">
-                          ${(player.gameStats?.bestScore || 0).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          {((player.gameStats?.winRate || 0)).toFixed(1)}% win rate
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">🚧</div>
+                  <h3 className="text-xl font-bold text-orange-400 mb-2">Leaderboard Coming Soon!</h3>
+                  <p className="text-gray-400 mb-4">
+                    The global leaderboard feature is currently under development.
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    For now, focus on improving your trading skills and check back later!
+                  </p>
                 </div>
               </CardContent>
             </Card>

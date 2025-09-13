@@ -286,7 +286,7 @@ Backend provides:
 2. **Update Frontend API URL:**
    ```javascript
    // In your frontend, update the API base URL
-   const API_BASE_URL = 'http://localhost:3001/api';
+   const API_BASE_URL = 'http://localhost:3000/api';
    ```
 
 3. **Test Integration:**

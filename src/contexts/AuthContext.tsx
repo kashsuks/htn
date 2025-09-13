@@ -165,20 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getLeaderboard = async () => {
-    try {
-      const headers = isAuthenticated ? await getAuthHeaders() : {};
-      const response = await fetch(`${API_BASE_URL}/users/leaderboard`, {
-        headers,
-      });
-
-      if (response.ok) {
-        return await response.json();
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error);
-      return [];
-    }
+    // For now, leaderboard redirects to profile - no API call needed
+    console.log('Leaderboard functionality not implemented yet - redirecting to profile');
+    return [];
   };
 
   useEffect(() => {

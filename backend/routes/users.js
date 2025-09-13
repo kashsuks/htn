@@ -1,13 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const dynamoDBService = require('../services/dynamodb');
+const dbService = require('../services/mongodb');
+const mockDynamoDBService = require('../services/mock-dynamodb');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
+
+// Check MongoDB connection and fallback if needed
+dbService.connect().catch(() => {
+  console.log('📝 Falling back to mock database for users route');
+  dbService = mockDynamoDBService;
+});
 
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.sub;
-    const userProfile = await dynamoDBService.getUser(userId);
+    const userProfile = await dbService.getUser(userId);
     
     res.json(userProfile);
   } catch (error) {
@@ -28,9 +35,9 @@ router.post('/profile', authenticateToken, async (req, res) => {
     // Check if profile already exists
     let userProfile;
     try {
-      userProfile = await dynamoDBService.getUser(userId);
+      userProfile = await dbService.getUser(userId);
       // Update existing profile
-      userProfile = await dynamoDBService.updateUser(userId, {
+      userProfile = await dbService.updateUser(userId, {
         name,
         email,
         picture
@@ -38,7 +45,7 @@ router.post('/profile', authenticateToken, async (req, res) => {
     } catch (error) {
       if (error.message === 'User not found') {
         // Create new profile
-        userProfile = await dynamoDBService.createUser({
+        userProfile = await dbService.createUser({
           userId,
           name,
           email,
@@ -62,7 +69,7 @@ router.patch('/profile/preferences', authenticateToken, async (req, res) => {
     const userId = req.user.sub;
     const { preferences } = req.body;
     
-    const userProfile = await dynamoDBService.updateUser(userId, {
+    const userProfile = await dbService.updateUser(userId, {
       preferences
     });
     
@@ -79,7 +86,7 @@ router.post('/game-result', authenticateToken, async (req, res) => {
     const userId = req.user.sub;
     const gameResult = req.body;
     
-    const userProfile = await dynamoDBService.updateGameStats(userId, gameResult);
+    const userProfile = await dbService.updateGameStats(userId, gameResult);
     
     // Check for achievements
     await checkAndAwardAchievements(userId, gameResult, userProfile);
@@ -95,7 +102,7 @@ router.post('/game-result', authenticateToken, async (req, res) => {
 router.get('/leaderboard', optionalAuth, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
-    const allUsers = await dynamoDBService.getAllUsers();
+    const allUsers = await dbService.getAllUsers();
     
     // Sort by best score and limit results
     const leaderboard = allUsers
@@ -120,7 +127,7 @@ router.get('/leaderboard', optionalAuth, async (req, res) => {
 router.get('/achievements', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.sub;
-    const userProfile = await dynamoDBService.getUser(userId);
+    const userProfile = await dbService.getUser(userId);
     
     res.json(userProfile.achievements || []);
   } catch (error) {
@@ -128,6 +135,90 @@ router.get('/achievements', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User profile not found' });
     }
     console.error('Error fetching user achievements:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get user's trading records
+router.get('/trading-records', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    const tradingRecords = await dbService.getTradingRecords(userId, limit);
+    
+    res.json({
+      success: true,
+      tradingRecords,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching trading records:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get user's game sessions
+router.get('/game-sessions', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const gameSessions = await dbService.getGameSessions(userId, limit);
+    
+    res.json({
+      success: true,
+      gameSessions,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching game sessions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Save trading record
+router.post('/trading-record', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const tradingData = {
+      ...req.body,
+      userId
+    };
+    
+    const tradingRecord = await dbService.saveTradingRecord(tradingData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Trading record saved successfully',
+      tradingRecord,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error saving trading record:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Save game session
+router.post('/game-session', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.sub;
+    const sessionData = {
+      ...req.body,
+      userId
+    };
+    
+    const gameSession = await dbService.saveGameSession(sessionData);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Game session saved successfully',
+      gameSession,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error saving game session:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -202,7 +293,7 @@ async function checkAndAwardAchievements(userId, gameResult, userProfile) {
   // Award new achievements
   for (const achievement of achievements) {
     try {
-      await dynamoDBService.addAchievement(userId, achievement);
+      await dbService.addAchievement(userId, achievement);
     } catch (error) {
       console.error('Error awarding achievement:', error);
     }

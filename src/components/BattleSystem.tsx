@@ -4,6 +4,8 @@ import { SimpleTradingGame } from './SimpleTradingGame';
 import { VSScreen } from './VSScreen';
 import { ResultsScreen } from './ResultsScreen';
 import { GameConfig } from './GameSetup';
+import { useAuthContext } from '../contexts/AuthContext';
+import { useAuth0 } from '@auth0/auth0-react';
 
 interface RoundResult {
   round: number;
@@ -28,6 +30,9 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
   const [currentPlayerValue, setCurrentPlayerValue] = useState(0);
   const [currentAIValue, setCurrentAIValue] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [battleStartTime, setBattleStartTime] = useState<number>(0);
+  const { updateGameStats } = useAuthContext();
+  const { getAccessTokenSilently } = useAuth0();
 
   const MAX_ROUNDS = 3;
 
@@ -35,6 +40,11 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
     console.log('🎮 Starting player round:', currentRound);
     setBattlePhase('player');
     setCurrentPlayerValue(0);
+    
+    // Track battle start time for the first round
+    if (currentRound === 1) {
+      setBattleStartTime(Date.now());
+    }
   };
 
   const handlePlayerComplete = (score: number) => {
@@ -102,6 +112,50 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
       if (currentRound >= MAX_ROUNDS || newPlayerScore >= 2 || newAiScore >= 2) {
         console.log('🏁 Battle complete!', { currentRound, newPlayerScore, newAiScore });
         setBattlePhase('complete');
+        
+        // Update game stats
+        const finalPlayerScore = newResults.reduce((sum, result) => sum + result.playerScore, 0) / newResults.length;
+        const finalAiScore = newResults.reduce((sum, result) => sum + result.aiScore, 0) / newResults.length;
+        const playerWon = newPlayerScore > newAiScore;
+        
+        // Update game stats
+        await updateGameStats({
+          score: finalPlayerScore,
+          won: playerWon,
+          gameType: 'battle',
+          rounds: newResults.length,
+          aiScore: finalAiScore,
+          timestamp: new Date().toISOString()
+        });
+
+        // Save game session to MongoDB
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/game-session`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${await getAccessTokenSilently()}`
+            },
+            body: JSON.stringify({
+              sessionId: `battle_${Date.now()}`,
+              gameType: 'battle',
+              rounds: newResults.length,
+              finalScore: finalPlayerScore,
+              aiScore: finalAiScore,
+              won: playerWon,
+              roundResults: newResults,
+              duration: Date.now() - battleStartTime,
+              completedAt: new Date().toISOString()
+            })
+          });
+          
+          if (response.ok) {
+            console.log('✅ Game session saved to MongoDB');
+          }
+        } catch (error) {
+          console.error('Error saving game session:', error);
+        }
+        
         onBattleComplete(newResults);
       } else {
         // Start next round
