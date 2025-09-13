@@ -67,7 +67,7 @@ class GameApiService {
 
   // Register team and get JWT token
   async registerTeam(teamData: TeamRegistration): Promise<TeamAuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/rbc/teams/register`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/teams/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ class GameApiService {
 
   // Create a new client
   async createClient(clientData: { name: string; email: string; cash: number }): Promise<Client> {
-    const response = await fetch(`${API_BASE_URL}/rbc/clients`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/clients`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ ...clientData, token: this.token }),
@@ -134,7 +134,7 @@ class GameApiService {
 
   // Get all clients for the team
   async getClients(): Promise<Client[]> {
-    const response = await fetch(`${API_BASE_URL}/rbc/clients?token=${this.token}`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/clients?token=${this.token}`, {
       method: 'GET',
     });
 
@@ -149,7 +149,7 @@ class GameApiService {
 
   // Get specific client
   async getClient(clientId: string): Promise<Client> {
-    const response = await fetch(`${API_BASE_URL}/rbc/clients/${clientId}?token=${this.token}`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}?token=${this.token}`, {
       method: 'GET',
     });
 
@@ -163,7 +163,7 @@ class GameApiService {
 
   // Create a portfolio for a client
   async createPortfolio(clientId: string, portfolioData: { type: string; initialAmount: number }): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE_URL}/rbc/clients/${clientId}/portfolios`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}/portfolios`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ ...portfolioData, token: this.token }),
@@ -180,7 +180,7 @@ class GameApiService {
 
   // Get portfolios for a client
   async getPortfolios(clientId: string): Promise<Portfolio[]> {
-    const response = await fetch(`${API_BASE_URL}/rbc/clients/${clientId}/portfolios?token=${this.token}`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}/portfolios?token=${this.token}`, {
       method: 'GET',
     });
 
@@ -195,7 +195,7 @@ class GameApiService {
 
   // Get specific portfolio
   async getPortfolio(portfolioId: string): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE_URL}/rbc/portfolios/${portfolioId}?token=${this.token}`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/portfolios/${portfolioId}?token=${this.token}`, {
       method: 'GET',
     });
 
@@ -209,7 +209,7 @@ class GameApiService {
 
   // Transfer funds to portfolio
   async transferToPortfolio(portfolioId: string, amount: number): Promise<{ portfolio: Portfolio; client_cash: number }> {
-    const response = await fetch(`${API_BASE_URL}/rbc/portfolios/${portfolioId}/transfer`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/portfolios/${portfolioId}/transfer`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ amount }),
@@ -225,7 +225,7 @@ class GameApiService {
 
   // Withdraw from portfolio
   async withdrawFromPortfolio(portfolioId: string, amount: number): Promise<{ portfolio: Portfolio; client_cash: number }> {
-    const response = await fetch(`${API_BASE_URL}/rbc/portfolios/${portfolioId}/withdraw`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/portfolios/${portfolioId}/withdraw`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ amount }),
@@ -241,7 +241,7 @@ class GameApiService {
 
   // Deposit to client cash
   async depositToClient(clientId: string, amount: number): Promise<{ client: Client }> {
-    const response = await fetch(`${API_BASE_URL}/rbc/clients/${clientId}/deposit`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}/deposit`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ amount }),
@@ -257,7 +257,7 @@ class GameApiService {
 
   // Simulate portfolios for a client
   async simulateClient(clientId: string, months: number): Promise<{ results: SimulationResult[] }> {
-    const response = await fetch(`${API_BASE_URL}/rbc/client/${clientId}/simulate`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/client/${clientId}/simulate`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ months }),
@@ -277,7 +277,7 @@ class GameApiService {
     trailingReturns: Record<string, string>;
     calendarReturns: Record<string, string>;
   }> {
-    const response = await fetch(`${API_BASE_URL}/rbc/portfolios/${portfolioId}/analysis?token=${this.token}`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc/portfolios/${portfolioId}/analysis?token=${this.token}`, {
       method: 'GET',
     });
 
@@ -304,7 +304,7 @@ class GameApiService {
 
   // AI Trading endpoints
   async startAITradingSession(gameConfig: any, rbcClientId: string, rbcPortfolioId: string, roundNumber: number): Promise<{ sessionId: string }> {
-    const response = await fetch(`${API_BASE_URL}/rbc-trading/start`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc-trading/start`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
@@ -324,7 +324,7 @@ class GameApiService {
   }
 
   async getAITradingSession(sessionId: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/rbc-trading/${sessionId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc-trading/${sessionId}`, {
       method: 'GET',
     });
 
@@ -337,7 +337,7 @@ class GameApiService {
   }
 
   async aiInvest(sessionId: string, rbcClientId: string, rbcPortfolioId: string, roundNumber: number): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/rbc-trading/${sessionId}/ai-invest`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc-trading/${sessionId}/ai-invest`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({
@@ -357,7 +357,7 @@ class GameApiService {
   }
 
   async completeAITradingSession(sessionId: string, finalValue: number): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/rbc-trading/${sessionId}/complete`, {
+    const response = await fetch(`${API_BASE_URL}/api/rbc-trading/${sessionId}/complete`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ finalValue }),

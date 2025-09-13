@@ -1,11 +1,9 @@
 import React from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Progress } from '../ui/progress';
 import LogoutButton from './LogoutButton';
 
 export const UserProfile: React.FC = () => {
@@ -24,161 +22,68 @@ export const UserProfile: React.FC = () => {
     );
   }
 
-  const stats = userProfile?.gameStats || {
-    totalGamesPlayed: 0,
-    totalWins: 0,
-    totalLosses: 0,
-    bestScore: 0,
-    totalProfit: 0,
-    averageScore: 0,
-    winRate: 0,
-  };
-
   const achievements = userProfile?.achievements || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 text-white p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen scanlines crt-screen text-white pixel-font" style={{backgroundColor: '#061625'}}>
+      <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 border-4 neon-border-pink p-6" style={{backgroundColor: 'rgba(255, 0, 233, 0.1)'}}>
           <div className="flex items-center gap-4">
             <img
               src={user.picture}
               alt={user.name}
-              className="w-16 h-16 rounded-full border-4 border-yellow-400"
+              className="w-20 h-20 rounded-full border-4 neon-border-yellow"
             />
             <div>
-              <h1 className="text-3xl font-bold">{user.name}</h1>
-              <p className="text-gray-300">{user.email}</p>
+              <h1 className="text-4xl retro-title neon-pink glitch-effect">{user.name}</h1>
+              <p className="text-lg neon-blue">{user.email}</p>
             </div>
           </div>
           <LogoutButton />
         </div>
 
-        <Tabs defaultValue="stats" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="stats">📊 Stats</TabsTrigger>
-            <TabsTrigger value="achievements">🏆 Achievements</TabsTrigger>
-            <TabsTrigger value="leaderboard">🥇 Leaderboard</TabsTrigger>
-            <TabsTrigger value="settings">⚙️ Settings</TabsTrigger>
+        <Tabs defaultValue="achievements" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-black/60 border-2 neon-border-blue">
+            <TabsTrigger value="achievements" className="pixel-font text-white data-[state=active]:bg-blue-600 data-[state=active]:text-white">🏆 ACHIEVEMENTS</TabsTrigger>
+            <TabsTrigger value="leaderboard" className="pixel-font text-white data-[state=active]:bg-green-600 data-[state=active]:text-white">🥇 LEADERBOARD</TabsTrigger>
+            <TabsTrigger value="settings" className="pixel-font text-white data-[state=active]:bg-purple-600 data-[state=active]:text-white">⚙️ SETTINGS</TabsTrigger>
           </TabsList>
-
-          {/* Stats Tab */}
-          <TabsContent value="stats" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-black/40 border-green-400">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-green-400 text-sm">Games Played</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stats.totalGamesPlayed}</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-black/40 border-blue-400">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-blue-400 text-sm">Win Rate</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stats.winRate.toFixed(1)}%</div>
-                  <Progress value={stats.winRate} className="mt-2" />
-                </CardContent>
-              </Card>
-
-              <Card className="bg-black/40 border-yellow-400">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-yellow-400 text-sm">Best Score</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">${stats.bestScore.toLocaleString()}</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-black/40 border-purple-400">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-purple-400 text-sm">Total Profit</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-3xl font-bold ${stats.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    ${stats.totalProfit.toLocaleString()}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-black/40 border-gray-600">
-                <CardHeader>
-                  <CardTitle>Performance Overview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between">
-                    <span>Wins:</span>
-                    <span className="text-green-400 font-bold">{stats.totalWins}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Losses:</span>
-                    <span className="text-red-400 font-bold">{stats.totalLosses}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Average Score:</span>
-                    <span className="text-blue-400 font-bold">${stats.averageScore.toFixed(0)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-black/40 border-gray-600">
-                <CardHeader>
-                  <CardTitle>Trading Level</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center">
-                    <div className="text-4xl mb-2">
-                      {stats.totalGamesPlayed < 5 ? '🌱' : 
-                       stats.totalGamesPlayed < 20 ? '📈' : 
-                       stats.totalGamesPlayed < 50 ? '💼' : 
-                       stats.winRate > 70 ? '👑' : '🎯'}
-                    </div>
-                    <div className="text-xl font-bold">
-                      {stats.totalGamesPlayed < 5 ? 'Novice Trader' : 
-                       stats.totalGamesPlayed < 20 ? 'Rising Trader' : 
-                       stats.totalGamesPlayed < 50 ? 'Experienced Trader' : 
-                       stats.winRate > 70 ? 'Master Trader' : 'Expert Trader'}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
 
           {/* Achievements Tab */}
           <TabsContent value="achievements" className="space-y-6">
-            <Card className="bg-black/40 border-yellow-400">
-              <CardHeader>
-                <CardTitle className="text-yellow-400">🏆 Achievements ({achievements.length})</CardTitle>
+            <Card className="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border-2 neon-border-yellow">
+              <CardHeader className="bg-yellow-900/20 border-b border-yellow-400/30">
+                <CardTitle className="text-yellow-300 pixel-font text-xl">🏆 ACHIEVEMENTS ({achievements.length})</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {achievements.length === 0 ? (
-                  <p className="text-gray-400 text-center py-8">
-                    No achievements yet. Start playing to earn your first achievement!
-                  </p>
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🎯</div>
+                    <p className="text-yellow-200 text-lg pixel-font mb-2">
+                      NO ACHIEVEMENTS YET
+                    </p>
+                    <p className="text-gray-300 retro-body">
+                      Start playing to earn your first achievement!
+                    </p>
+                  </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {achievements.map((achievement) => (
                       <div
                         key={achievement.id}
-                        className="bg-gray-800 rounded-lg p-4 border border-gray-600 hover:border-yellow-400 transition-colors"
+                        className="bg-black/60 rounded-lg p-4 border-2 neon-border-yellow hover:bg-yellow-900/20 transition-all duration-300"
                       >
                         <div className="text-3xl mb-2">{achievement.icon}</div>
-                        <h3 className="font-bold text-yellow-400">{achievement.name}</h3>
-                        <p className="text-sm text-gray-300 mb-2">{achievement.description}</p>
+                        <h3 className="font-bold text-yellow-300 pixel-font">{achievement.name}</h3>
+                        <p className="text-sm text-gray-200 mb-2 retro-body">{achievement.description}</p>
                         <div className="flex justify-between items-center">
                           <Badge variant={achievement.rarity === 'common' ? 'secondary' : 
                                         achievement.rarity === 'uncommon' ? 'default' :
                                         achievement.rarity === 'rare' ? 'destructive' : 'outline'}>
                             {achievement.rarity}
                           </Badge>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-300 pixel-font">
                             {new Date(achievement.earnedAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -192,18 +97,18 @@ export const UserProfile: React.FC = () => {
 
           {/* Leaderboard Tab */}
           <TabsContent value="leaderboard" className="space-y-6">
-            <Card className="bg-black/40 border-orange-400">
-              <CardHeader>
-                <CardTitle className="text-orange-400">🥇 Global Leaderboard</CardTitle>
+            <Card className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 border-2 neon-border-green">
+              <CardHeader className="bg-green-900/20 border-b border-green-400/30">
+                <CardTitle className="text-green-300 pixel-font text-xl">🥇 GLOBAL LEADERBOARD</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
+              <CardContent className="p-6">
+                <div className="text-center py-12">
                   <div className="text-6xl mb-4">🚧</div>
-                  <h3 className="text-xl font-bold text-orange-400 mb-2">Leaderboard Coming Soon!</h3>
-                  <p className="text-gray-400 mb-4">
+                  <h3 className="text-xl font-bold text-green-300 pixel-font mb-4">LEADERBOARD COMING SOON!</h3>
+                  <p className="text-gray-200 mb-6 retro-body text-lg">
                     The global leaderboard feature is currently under development.
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-gray-300 retro-body">
                     For now, focus on improving your trading skills and check back later!
                   </p>
                 </div>
@@ -213,12 +118,18 @@ export const UserProfile: React.FC = () => {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
-            <Card className="bg-black/40 border-gray-600">
-              <CardHeader>
-                <CardTitle>⚙️ Preferences</CardTitle>
+            <Card className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border-2 neon-border-blue">
+              <CardHeader className="bg-purple-900/20 border-b border-purple-400/30">
+                <CardTitle className="text-purple-300 pixel-font text-xl">⚙️ PREFERENCES</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-gray-400">Settings panel coming soon...</p>
+              <CardContent className="p-6">
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">⚙️</div>
+                  <h3 className="text-xl font-bold text-purple-300 pixel-font mb-4">SETTINGS PANEL COMING SOON!</h3>
+                  <p className="text-gray-200 retro-body text-lg">
+                    Customization options will be available here soon.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

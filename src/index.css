@@ -5231,3 +5231,237 @@ html {
     opacity: 0;
   }
 }
+
+/* Custom Fonts */
+@font-face {
+  font-family: 'DTM-Mono';
+  src: url('/fonts/DTM-Mono.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'DTM-Sans';
+  src: url('/fonts/DTM-Sans.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Maesto';
+  src: url('/fonts/Maesto.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Street Fighter Retro Styles */
+.pixel-font {
+  font-family: 'DTM-Mono', 'Courier New', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.retro-title {
+  font-family: 'Maesto', 'DTM-Sans', sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.retro-body {
+  font-family: 'DTM-Sans', Arial, sans-serif;
+  letter-spacing: 1px;
+}
+
+/* Custom Cursor */
+* {
+  cursor: url('/cursors/cursor1.png'), auto !important;
+}
+
+button, a, .clickable {
+  cursor: url('/cursors/cursor1.png'), pointer !important;
+}
+
+/* Very Subtle Neon Effects - Highly Readable */
+.neon-text {
+  text-shadow: 
+    0 0 1px currentColor,
+    0 0 2px currentColor;
+}
+
+.neon-pink {
+  color: #ff99e6;
+  text-shadow: 
+    0 0 1px #ff99e6,
+    0 0 3px #ff99e6;
+}
+
+.neon-blue {
+  color: #99ddff;
+  text-shadow: 
+    0 0 1px #99ddff,
+    0 0 3px #99ddff;
+}
+
+.neon-yellow {
+  color: #ffff99;
+  text-shadow: 
+    0 0 1px #ffff99,
+    0 0 3px #ffff99;
+}
+
+.neon-green {
+  color: #99ffbb;
+  text-shadow: 
+    0 0 1px #99ffbb,
+    0 0 3px #99ffbb;
+}
+
+.neon-red {
+  color: #ff9999;
+  text-shadow: 
+    0 0 1px #ff9999,
+    0 0 3px #ff9999;
+}
+
+/* Very Subtle Neon Borders - Highly Readable */
+.neon-border-pink {
+  border-color: #ff99e6;
+  box-shadow: 
+    0 0 1px #ff99e6,
+    0 0 3px #ff99e6,
+    inset 0 0 1px #ff99e6;
+}
+
+.neon-border-blue {
+  border-color: #99ddff;
+  box-shadow: 
+    0 0 1px #99ddff,
+    0 0 3px #99ddff,
+    inset 0 0 1px #99ddff;
+}
+
+.neon-border-yellow {
+  border-color: #ffff99;
+  box-shadow: 
+    0 0 1px #ffff99,
+    0 0 3px #ffff99,
+    inset 0 0 1px #ffff99;
+}
+
+.neon-border-green {
+  border-color: #99ffbb;
+  box-shadow: 
+    0 0 1px #99ffbb,
+    0 0 3px #99ffbb,
+    inset 0 0 1px #99ffbb;
+}
+
+.neon-border-red {
+  border-color: #ff9999;
+  box-shadow: 
+    0 0 1px #ff9999,
+    0 0 3px #ff9999,
+    inset 0 0 1px #ff9999;
+}
+
+/* Scanlines Effect */
+.scanlines {
+  position: relative;
+}
+
+.scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 0, 0.03) 2px,
+    rgba(0, 255, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* CRT Screen Effect */
+.crt-screen {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.2) 100%);
+  position: relative;
+}
+
+.crt-screen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, transparent 50%, rgba(0, 255, 0, 0.02) 50%),
+    linear-gradient(0deg, transparent 50%, rgba(0, 255, 0, 0.02) 50%);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Retro Button Styles */
+.retro-button {
+  font-family: 'DTM-Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+  background: linear-gradient(45deg, #1a1a1a, #333);
+  border: 2px solid;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.retro-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+}
+
+.retro-button:active {
+  transform: translateY(0);
+}
+
+/* Glitch Effect */
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+.glitch-effect:hover {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* Apply retro fonts globally */
+body {
+  font-family: 'DTM-Sans', Arial, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Maesto', 'DTM-Sans', sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+button {
+  font-family: 'DTM-Mono', monospace;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
