@@ -15,7 +15,7 @@ const mongoDBService = require('./services/mongodb');
 const mockDynamoDBService = require('./services/mock-dynamodb');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(helmet());

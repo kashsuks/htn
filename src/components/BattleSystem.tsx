@@ -97,7 +97,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
     setBattlePhase('results');
 
     // Check if battle is complete
-    setTimeout(() => {
+    setTimeout(async () => {
       const newPlayerScore = winner === 'player' ? playerScore + 1 : playerScore;
       const newAiScore = winner === 'ai' ? aiScore + 1 : aiScore;
       
@@ -130,11 +130,12 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
 
         // Save game session to MongoDB
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/game-session`, {
+          const token = await getAccessTokenSilently();
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/users/game-session`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${await getAccessTokenSilently()}`
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
               sessionId: `battle_${Date.now()}`,
