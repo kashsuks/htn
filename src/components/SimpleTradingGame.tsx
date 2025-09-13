@@ -47,8 +47,8 @@ const MOCK_STOCKS: Stock[] = [
 ];
 
 export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumber }: SimpleTradingGameProps) {
-  const [stocks, setStocks] = useState<Stock[]>(MOCK_STOCKS);
-  const [selectedStock, setSelectedStock] = useState<Stock>(MOCK_STOCKS[0]);
+  const [stocks, setStocks] = useState(MOCK_STOCKS);
+  const [selectedStock, setSelectedStock] = useState(MOCK_STOCKS[0]);
   const [chartData, setChartData] = useState<StockData[]>([]);
   const [portfolio, setPortfolio] = useState<{[key: string]: number}>({});
   const [cash, setCash] = useState(gameConfig.initialCash);
@@ -82,7 +82,7 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     setAiCash(gameConfig.initialCash);
     setAiPortfolio({});
     console.log('🔄 Round reset for round:', roundNumber, 'isAITurn:', isAITurn);
-  }, [roundNumber, isAITurn, gameConfig.initialCash]);
+  }, [roundNumber, gameConfig.initialCash]); // Removed isAITurn dependency
 
   // Initialize RBC InvestEase client and portfolio
   useEffect(() => {
@@ -182,12 +182,22 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
 
   // Update total value periodically
   useEffect(() => {
-    const portfolioValue = Object.entries(portfolio).reduce((total, [symbol, shares]) => {
-      const stock = stocks.find(s => s.symbol === symbol);
-      return total + (stock ? stock.price * shares : 0);
-    }, 0);
-    setTotalValue(cash + portfolioValue);
-  }, [cash, portfolio, stocks]);
+    if (isAITurn) {
+      // For AI turn: calculate total value from AI cash + AI portfolio
+      const aiPortfolioValue = Object.entries(aiPortfolio).reduce((total, [symbol, shares]) => {
+        const stock = stocks.find(s => s.symbol === symbol);
+        return total + (stock ? stock.price * (shares as number) : 0);
+      }, 0);
+      setTotalValue(aiCash + aiPortfolioValue);
+    } else {
+      // For player turn: calculate total value from player cash + player portfolio
+      const portfolioValue = Object.entries(portfolio).reduce((total, [symbol, shares]) => {
+        const stock = stocks.find(s => s.symbol === symbol);
+        return total + (stock ? stock.price * (shares as number) : 0);
+      }, 0);
+      setTotalValue(cash + portfolioValue);
+    }
+  }, [cash, portfolio, stocks, isAITurn, aiCash, aiPortfolio]);
 
   // Timer countdown - Fixed to never freeze
   useEffect(() => {
@@ -206,9 +216,7 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
             gameApi.completeAITradingSession(aiSessionId, rbcValue).catch(console.error);
           }
           
-          // Use RBC value for AI rounds, player value for player rounds
-          const finalValue = isAITurn ? rbcValue : totalValue;
-          onComplete(finalValue);
+          // We'll calculate final value in a separate effect when gameComplete changes
           return 0;
         }
         return prev - 1;
@@ -218,7 +226,33 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     return () => {
       clearInterval(intervalId);
     };
-  }, [gameComplete]); // Removed all dependencies that could cause re-renders
+  }, [gameComplete, isAITurn, aiSessionId, rbcValue]);
+
+  // Handle game completion and final value calculation
+  useEffect(() => {
+    if (!gameComplete) return;
+
+    // Calculate final portfolio value with current state values
+    let finalValue;
+    if (isAITurn) {
+      // For AI: calculate total value from AI cash + AI portfolio
+      const aiPortfolioValue = Object.entries(aiPortfolio).reduce((total, [symbol, shares]) => {
+        const stock = stocks.find(s => s.symbol === symbol);
+        return total + (stock ? stock.price * (shares as number) : 0);
+      }, 0);
+      finalValue = aiCash + aiPortfolioValue;
+      console.log('🤖 AI Final Value:', { aiCash, aiPortfolioValue, finalValue });
+    } else {
+      // For Player: use the already calculated totalValue
+      finalValue = totalValue;
+      console.log('👤 Player Final Value:', { cash, portfolioValue: totalValue - cash, finalValue });
+    }
+    
+    // Defer the onComplete call to avoid setState during render
+    setTimeout(() => {
+      onComplete(finalValue);
+    }, 0);
+  }, [gameComplete, isAITurn, aiCash, aiPortfolio, totalValue, cash, stocks, onComplete]);
 
   // Initialize AI trading session when AI turn starts
   useEffect(() => {
@@ -280,11 +314,11 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
               // Calculate new total value
               const portfolioValue = Object.entries(newPortfolio).reduce((total, [symbol, shares]) => {
                 const stock = stocks.find(s => s.symbol === symbol);
-                return total + (stock ? stock.price * shares : 0);
+                return total + (stock ? stock.price * (shares as number) : 0);
               }, 0);
               
               const newTotalValue = newCash + portfolioValue;
-              setRbcValue(newTotalValue);
+              // Don't update rbcValue here, let it be calculated at the end
               
               // Record the trade
               const trade: AITrade = {
@@ -371,7 +405,7 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
         portfolio={isAITurn ? aiPortfolio : portfolio}
         stocks={stocks}
         cash={isAITurn ? aiCash : cash}
-        totalValue={isAITurn ? rbcValue : totalValue}
+        totalValue={totalValue}
         timeLeft={timeLeft}
         totalTime={totalTime}
         isAITurn={isAITurn}

@@ -1,5 +1,5 @@
 // Game API Service - Calls our backend which proxies to RBC InvestEase API
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 export interface TeamRegistration {
   team_name: string;
@@ -120,7 +120,7 @@ class GameApiService {
     const response = await fetch(`${API_BASE_URL}/rbc/clients`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(clientData),
+      body: JSON.stringify({ ...clientData, token: this.token }),
     });
 
     if (!response.ok) {
@@ -128,7 +128,8 @@ class GameApiService {
       throw new Error(error.message || 'Failed to create client');
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data.client || data;
   }
 
   // Get all clients for the team
@@ -142,7 +143,8 @@ class GameApiService {
       throw new Error(error.message || 'Failed to get clients');
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data.clients || data;
   }
 
   // Get specific client
@@ -164,7 +166,7 @@ class GameApiService {
     const response = await fetch(`${API_BASE_URL}/rbc/clients/${clientId}/portfolios`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(portfolioData),
+      body: JSON.stringify({ ...portfolioData, token: this.token }),
     });
 
     if (!response.ok) {
@@ -172,7 +174,8 @@ class GameApiService {
       throw new Error(error.message || 'Failed to create portfolio');
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data.portfolio || data;
   }
 
   // Get portfolios for a client
@@ -186,7 +189,8 @@ class GameApiService {
       throw new Error(error.message || 'Failed to get portfolios');
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data.portfolios || data;
   }
 
   // Get specific portfolio

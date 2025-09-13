@@ -21,7 +21,7 @@ type BattlePhase = 'setup' | 'player' | 'vs' | 'ai' | 'results' | 'complete';
 
 export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps) {
   const [currentRound, setCurrentRound] = useState(1);
-  const [battlePhase, setBattlePhase] = useState<BattlePhase>('setup');
+  const [battlePhase, setBattlePhase] = useState('setup' as BattlePhase);
   const [roundResults, setRoundResults] = useState<RoundResult[]>([]);
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
@@ -46,18 +46,18 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
   const handleVSComplete = () => {
     console.log('⚡ VS screen complete, starting AI round:', currentRound);
     setBattlePhase('ai');
-    setCurrentAIValue(0);
+    // Don't reset currentAIValue here - keep the previous value until AI completes
   };
 
   const handleAIComplete = async (score: number) => {
     console.log('🤖 AI round complete:', { score, playerScore: currentPlayerValue, round: currentRound });
     setCurrentAIValue(score);
     
-    // Determine round winner
+    // Determine round winner - higher portfolio value wins
     const winner = score > currentPlayerValue ? 'ai' : 
                    currentPlayerValue > score ? 'player' : 'tie';
     
-    console.log('🏆 Round winner determined:', { winner, playerScore: currentPlayerValue, aiScore: score });
+    console.log('🏆 Round winner determined:', { winner, playerScore: currentPlayerValue, aiScore: score, difference: Math.abs(score - currentPlayerValue) });
     
     const roundResult: RoundResult = {
       round: currentRound,
@@ -90,6 +90,14 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
     setTimeout(() => {
       const newPlayerScore = winner === 'player' ? playerScore + 1 : playerScore;
       const newAiScore = winner === 'ai' ? aiScore + 1 : aiScore;
+      
+      console.log('📊 Battle status check:', { 
+        currentRound, 
+        maxRounds: MAX_ROUNDS, 
+        newPlayerScore, 
+        newAiScore,
+        battleComplete: currentRound >= MAX_ROUNDS || newPlayerScore >= 2 || newAiScore >= 2
+      });
       
       if (currentRound >= MAX_ROUNDS || newPlayerScore >= 2 || newAiScore >= 2) {
         console.log('🏁 Battle complete!', { currentRound, newPlayerScore, newAiScore });

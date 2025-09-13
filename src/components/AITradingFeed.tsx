@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface AITrade {
@@ -66,22 +67,24 @@ export function AITradingFeed({ trades, currentValue, startValue }: AITradingFee
         </div>
       </div>
       
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #1a1a1a;
-          border: 1px solid #00ff00;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #00ff00;
-          border-radius: 0;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #00cc00;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 0;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #00cc00;
+          }
+        `
+      }} />
     </div>
   );
 }
