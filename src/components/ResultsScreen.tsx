@@ -25,7 +25,7 @@ export function ResultsScreen({
   
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center text-white">
-      <div className="text-center max-w-2xl mx-auto p-8">
+      <div className="text-center max-w-3xl mx-auto p-8 mt-[4rem]">
         {/* Winner Animation */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
@@ -44,15 +44,15 @@ export function ResultsScreen({
               ]
             }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="text-6xl font-bold text-yellow-400 mb-2"
+            className="text-6xl font-bold text-[#fff900] mb-2"
           >
             {isFinalRound ? 'BATTLE COMPLETE!' : `ROUND ${roundNumber} - ${winner} WINS!`}
           </motion.div>
         </motion.div>
 
         {/* Score Display */}
-        <div className="bg-black/40 border-4 border-yellow-400 rounded-lg p-8 mb-8">
-          <div className="text-3xl font-bold mb-6 text-yellow-400">
+        <div className="bg-black/40 border-4 border-[#fff900] rounded-lg p-8 mb-8">
+          <div className="text-3xl font-bold mb-6 text-[#fff900]">
             {isFinalRound ? 'FINAL SCORES' : `ROUND ${roundNumber} SCORES`}
           </div>
           
@@ -67,7 +67,7 @@ export function ResultsScreen({
               }`}
             >
               <div className="text-4xl mb-2">👤</div>
-              <div className="text-lg font-bold">PLAYER</div>
+              <div className="text-2xl font-bold">PLAYER</div>
               <div className="text-2xl font-bold text-green-400">
                 ${playerScore.toFixed(2)}
               </div>
@@ -83,7 +83,7 @@ export function ResultsScreen({
               transition={{ delay: 1, duration: 0.3 }}
               className="text-center"
             >
-              <div className="text-6xl font-bold text-yellow-400">
+              <div className="text-6xl font-bold text-[#fff900]">
                 {Math.round((playerScore / aiScore) * 10) / 10} : {Math.round((aiScore / playerScore) * 10) / 10}
               </div>
             </motion.div>
@@ -98,7 +98,7 @@ export function ResultsScreen({
               }`}
             >
               <div className="text-4xl mb-2">🤖</div>
-              <div className="text-lg font-bold">AI TRADER</div>
+              <div className="text-2xl font-bold">INVESTEASE</div>
               <div className="text-2xl font-bold text-red-400">
                 ${aiScore.toFixed(2)}
               </div>
@@ -109,14 +109,14 @@ export function ResultsScreen({
           </div>
         </div>
 
-        {/* Performance Analysis */}
+        {/* Performance Analysis
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 1.5, duration: 0.5 }}
           className="bg-black/30 rounded-lg p-6 mb-8"
         >
-          <h3 className="text-xl font-bold text-yellow-400 mb-4">BATTLE ANALYSIS</h3>
+          <h3 className="text-xl font-bold text-[#fff900] mb-4">BATTLE ANALYSIS</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
             <div>
               <strong>Player Performance:</strong> {
@@ -133,7 +133,7 @@ export function ResultsScreen({
               }
             </div>
           </div>
-        </motion.div>
+        </motion.div> */}
 
         {/* Restart Button */}
         <motion.div
@@ -144,41 +144,10 @@ export function ResultsScreen({
             <Button
               onClick={onRestart}
               size="lg"
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-xl px-8 py-4"
+              className="bg-[#fff900] hover:bg-[#9b9801] text-black font-bold text-xl px-8 py-4"
             >
-              {isFinalRound ? '🔄 NEW BATTLE' : '⏭️ CONTINUE'}
+              {isFinalRound ? 'NEW BATTLE' : 'CONTINUE'}
             </Button>
-        </motion.div>
-
-        {/* Floating elements */}
-        <motion.div
-          animate={{ 
-            y: [0, -10, 0],
-            rotate: [0, 5, -5, 0]
-          }}
-          transition={{ 
-            duration: 3, 
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          className="absolute top-10 left-10 text-4xl opacity-50"
-        >
-          💰
-        </motion.div>
-        
-        <motion.div
-          animate={{ 
-            y: [0, 10, 0],
-            rotate: [0, -5, 5, 0]
-          }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          className="absolute bottom-10 right-10 text-4xl opacity-50"
-        >
-          📈
         </motion.div>
       </div>
     </div>

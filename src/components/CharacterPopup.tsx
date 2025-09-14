@@ -57,8 +57,8 @@ export function CharacterPopup({ onEventTrigger }: CharacterPopupProps) {
 
       setTimeout(() => {
         setShowEvent(false);
-      }, 3000);
-    }, 5000);
+      }, 4000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, []); // Removed onEventTrigger dependency to prevent recreation
@@ -78,8 +78,8 @@ export function CharacterPopup({ onEventTrigger }: CharacterPopupProps) {
             currentEvent.impact === 'negative' ? 'bg-red-100 border-red-500 text-red-800' :
             'bg-blue-100 border-blue-500 text-blue-800'
           }`}>
-            <div className="font-bold text-lg mb-2">{currentEvent.character}</div>
-            <div className="text-sm">{currentEvent.message}</div>
+            <div className="font-bold text-4xl mb-2">{currentEvent.character}</div>
+            <div className="text-xl">{currentEvent.message}</div>
             
             {/* Speech bubble arrow */}
             <div className={`absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2 w-0 h-0 ${

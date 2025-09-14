@@ -27,20 +27,13 @@ export function DateTimer({ timeLeft, totalTime }: DateTimerProps) {
   return (
     <div className="pixel-font text-center mb-6">
       <motion.div
-        animate={{ 
-          textShadow: [
-            '0 0 5px #00ff00, 0 0 10px #00ff00',
-            '0 0 10px #00ff00, 0 0 20px #00ff00',
-            '0 0 5px #00ff00, 0 0 10px #00ff00'
-          ]
-        }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="text-4xl text-green-400 mb-2"
-      >
-        📅 {formatDate(currentDate)}
+        className="text-4xl text-[#00e1ff] mb-2"
+        style={{}}
+        >
+        {formatDate(currentDate)}
       </motion.div>
       
-      <div className="text-green-300 text-lg mb-3">
+      <div className="text-[#fff900] text-lg mb-3">
         DAY {currentDay + 1} OF {totalDays} | {timeLeft}s REMAINING
       </div>
       

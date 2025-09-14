@@ -23,7 +23,7 @@ type BattlePhase = 'setup' | 'player' | 'vs' | 'ai' | 'results' | 'complete';
 
 export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps) {
   const [currentRound, setCurrentRound] = useState(1);
-  const [battlePhase, setBattlePhase] = useState('setup' as BattlePhase);
+  const [battlePhase, setBattlePhase] = useState('setup' as BattlePhase); // original: setup
   const [roundResults, setRoundResults] = useState<RoundResult[]>([]);
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
@@ -50,7 +50,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
   const handlePlayerComplete = (score: number) => {
     console.log('🎮 Player round complete:', { score, round: currentRound });
     setCurrentPlayerValue(score);
-    setBattlePhase('vs');
+    setBattlePhase('vs'); // original: vs
   };
 
   const handleVSComplete = () => {
@@ -198,10 +198,10 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
             transition={{ delay: 0.2 }}
             className="mb-12"
           >
-            <div className="text-6xl mb-4 neon-pink">
+            <div className="text-6xl mb-4 mt-[5rem] text-[#ff00e9]">
               {getBattleStatus()}
             </div>
-            <div className="text-2xl neon-blue">
+            <div className="text-4xl text-[#39FF14]">
               {battlePhase === 'complete' ? 'BATTLE COMPLETE' : 'PREPARE FOR BATTLE'}
             </div>
           </motion.div>
@@ -213,14 +213,14 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
             transition={{ delay: 0.3 }}
             className="border-4 neon-border-blue p-8 mb-8" style={{backgroundColor: 'rgba(6, 22, 37, 0.8)'}}
           >
-            <h2 className="text-3xl mb-6 neon-yellow">BATTLE PROGRESS</h2>
+            <h2 className="text-3xl mb-6 text-[#fff900]">BATTLE PROGRESS</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map((round) => (
                 <div key={round} className="text-center">
-                  <div className={`text-4xl mb-2 ${round <= currentRound ? 'neon-yellow' : 'text-gray-500'}`}>
+                  <div className={`text-4xl mb-2 ${round <= currentRound ? 'text-[#fff900]' : 'text-gray-500'}`}>
                     {round <= currentRound ? '🥊' : '⭕'}
                   </div>
-                  <div className={`text-xl font-bold ${round <= currentRound ? 'neon-blue' : 'text-gray-500'}`}>
+                  <div className={`text-xl font-bold ${round <= currentRound ? 'text-[#00e1ff]' : 'text-gray-500'}`}>
                     ROUND {round}
                   </div>
                   {round < currentRound && roundResults[round - 1] && (
@@ -244,15 +244,15 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
             transition={{ delay: 0.4 }}
             className="grid grid-cols-2 gap-8 mb-8"
           >
-            <div className="border-4 neon-border-pink p-6" style={{backgroundColor: 'rgba(255, 0, 233, 0.1)'}}>
+            <div className="border-4 border-[#ff00e9] p-6" style={{backgroundColor: 'rgba(255, 0, 233, 0.1)'}}>
               <div className="text-3xl mb-2">👤</div>
-              <div className="text-4xl font-bold neon-pink">{playerScore}</div>
+              <div className="text-4xl font-bold text-[#ff00e9]">{playerScore}</div>
               <div className="text-lg">PLAYER WINS</div>
             </div>
-            <div className="border-4 neon-border-blue p-6" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
+            <div className="border-4 border-[#00e1ff] p-6" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
               <div className="text-3xl mb-2">🤖</div>
-              <div className="text-4xl font-bold neon-blue">{aiScore}</div>
-              <div className="text-lg">AI WINS</div>
+              <div className="text-4xl font-bold text-[#00e1ff]">{aiScore}</div>
+              <div className="text-lg">INVESTEASE WINS</div>
             </div>
           </motion.div>
 
@@ -261,24 +261,24 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="border-4 neon-border-yellow p-6 mb-8" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}
+            className="border-4 border-[#fff900] p-6 mb-8" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}
           >
-            <h3 className="text-2xl mb-4 neon-yellow">BATTLE PARAMETERS</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <h3 className="text-3xl mb-4 text-[#fff900]">BATTLE PARAMETERS</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xl">
               <div>
-                <strong className="neon-blue">GOAL:</strong><br />
+                <strong className="text-[#00e1ff]">GOAL:</strong><br />
                 {gameConfig.goal}
               </div>
               <div>
-                <strong className="neon-pink">TARGET:</strong><br />
+                <strong className="text-[#ff00e9]">TARGET:</strong><br />
                 ${gameConfig.cost.toLocaleString()}
               </div>
               <div>
-                <strong className="neon-yellow">TIME:</strong><br />
+                <strong className="text-[#fff900]">TIME:</strong><br />
                 {gameConfig.timeframe} days
               </div>
               <div>
-                <strong className="neon-green">START:</strong><br />
+                <strong className="text-[#39FF14]">START:</strong><br />
                 ${gameConfig.initialCash.toLocaleString()}
               </div>
             </div>
@@ -293,10 +293,9 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
             >
               <button
                 onClick={startPlayerRound}
-                className="border-4 neon-border-yellow text-black pixel-font text-3xl px-12 py-6 bg-yellow-400 hover:bg-yellow-300 transition-all duration-300"
-                style={{backgroundColor: '#fff900'}}
+                className="border-4 border-[#fff900] text-black rounded-lg pixel-font text-3xl px-12 py-[1rem] bg-[#fff900] hover:bg-[#bab700] transition-all duration-300"
               >
-                🥊 START ROUND {currentRound}
+                START ROUND {currentRound}
               </button>
             </motion.div>
           )}
@@ -316,7 +315,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
                 {getOverallWinner() === 'player' ? '🏆 VICTORY!' : 
                  getOverallWinner() === 'ai' ? '💀 DEFEAT!' : '🤝 DRAW!'}
               </div>
-              <div className="text-xl neon-blue">
+              <div className="text-xl text-[#00e1ff]">
                 Final Score: {playerScore} - {aiScore}
               </div>
             </motion.div>

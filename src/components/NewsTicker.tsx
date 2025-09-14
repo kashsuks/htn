@@ -18,19 +18,19 @@ export function NewsTicker() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentNews((prev) => (prev + 1) % NEWS_HEADLINES.length);
-    }, 4000);
+    }, 12000);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="w-full bg-red-600 text-white py-2 overflow-hidden border-b-4 border-yellow-400">
+    <div className="w-full bg-red-600 mt-[4rem] text-white py-2 overflow-hidden">
       <motion.div
         key={currentNews}
         initial={{ x: "100%" }}
         animate={{ x: "-100%" }}
-        transition={{ duration: 8, ease: "linear" }}
-        className="whitespace-nowrap px-4 text-lg font-bold"
+        transition={{ duration: 16, ease: "linear" }}
+        className="whitespace-nowrap px-4 text-3xl font-bold"
       >
         {NEWS_HEADLINES[currentNews]}
       </motion.div>
