@@ -53,6 +53,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   const [investEaseValue, setInvestEaseValue] = useState(gameConfig.initialCash);
   const [investEaseStrategy, setInvestEaseStrategy] = useState('');
   const [investEaseComplete, setInvestEaseComplete] = useState(false);
+  const [rbcApiCalled, setRbcApiCalled] = useState(false);
   const [timeLeft, setTimeLeft] = useState(gameConfig.timeframe * 5); // 5 seconds per day
   const [currentDay, setCurrentDay] = useState(1);
   const [gameComplete, setGameComplete] = useState(false);
@@ -389,6 +390,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
         setInvestEasePortfolio({});
         setInvestEaseCash(newValue);
+        setInvestEaseComplete(true);
         
         // Generate realistic InvestEase-style trend data with market volatility
         const fallbackTrendData = [];
@@ -1312,16 +1314,40 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           </div>
         </div>
 
-        {/* Next Phase Button - Only show when simulation is complete */}
+        {/* Show Winner Button - Only show when simulation is complete */}
         {investEaseComplete && (
           <div className="text-center mt-8">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleNextPhase}
+              onClick={() => {
+                // Calculate final results and determine winner
+                const humanValue = calculateTotalValue(humanPortfolio, humanCash);
+                const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
+                const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
+
+                // Determine winner by highest total value (most money)
+                let winner = 'human';
+                let winnerName = '👤 HUMAN';
+                let winnerValue = humanValue;
+                
+                if (autonomousValue > winnerValue) {
+                  winner = 'autonomous';
+                  winnerName = '🤖 AUTONOMOUS AI';
+                  winnerValue = autonomousValue;
+                }
+                if (investEaseValue > winnerValue) {
+                  winner = 'investease';
+                  winnerName = '🏦 INVESTEASE';
+                  winnerValue = investEaseValue;
+                }
+
+                // Show winner alert
+                alert(`🏆 WINNER: ${winnerName}\n\nFinal Results:\n👤 Human: $${humanValue.toFixed(2)}\n🤖 Autonomous AI: $${autonomousValue.toFixed(2)}\n🏦 InvestEase: $${investEaseValue.toFixed(2)}\n\n🏆 ${winnerName} wins with $${winnerValue.toFixed(2)}!`);
+              }}
               className="px-8 py-4 bg-gradient-to-r from-yellow-600 to-orange-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              📊 View Results
+              🏆 Show Winner
             </motion.button>
           </div>
         )}
