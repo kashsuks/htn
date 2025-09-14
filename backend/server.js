@@ -19,7 +19,13 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:5173'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:3005',
+    'http://localhost:3007',
+    process.env.CORS_ORIGIN || 'http://localhost:3000'
+  ],
   credentials: true
 }));
 app.use(morgan('combined'));
@@ -87,7 +93,7 @@ async function startServer() {
   // Start the server
   app.listen(PORT, () => {
     console.log(`🚀 InvestEase Showdown Backend running on port ${PORT}`);
-    console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
+    console.log(`🌐 CORS enabled for: http://localhost:5173,http://localhost:3005,${process.env.CORS_ORIGIN || 'http://localhost:3000'}`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     console.log(`🗄️ Database: MongoDB`);

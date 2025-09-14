@@ -5,9 +5,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from "./App.tsx";
 import "./index.css";
 
-const domain = import.meta.env.VITE_AUTH0_DOMAIN;
-const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
-const audience = import.meta.env.VITE_AUTH0_AUDIENCE;
+const domain = import.meta.env.VITE_AUTH0_DOMAIN || "dev-6je75u11ilovcvvw.us.auth0.com";
+const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID || "your-client-id";
 
 createRoot(document.getElementById("root")!).render(
   <Auth0Provider
@@ -15,7 +14,6 @@ createRoot(document.getElementById("root")!).render(
     clientId={clientId}
     authorizationParams={{
       redirect_uri: window.location.origin,
-      audience: audience,
     }}
   >
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

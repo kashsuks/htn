@@ -6,6 +6,7 @@ import { ResultsScreen } from './ResultsScreen';
 import { GameConfig } from './GameSetup';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useAuth0 } from '@auth0/auth0-react';
+import GroqTradingAnalysisService, { GroqAnalysisResponse } from '../services/groqAnalysis';
 
 interface RoundResult {
   round: number;
@@ -28,6 +29,10 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
   const [currentPlayerValue, setCurrentPlayerValue] = useState(0);
+  const [showAnalysisReport, setShowAnalysisReport] = useState(false);
+  const [groqAnalysis, setGroqAnalysis] = useState<GroqAnalysisResponse | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [roundComplete, setRoundComplete] = useState(false);
   const [currentAIValue, setCurrentAIValue] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [battleStartTime, setBattleStartTime] = useState<number>(0);
@@ -158,13 +163,55 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
         }
         
         onBattleComplete(newResults);
+        setRoundComplete(true); // Enable analysis button
       } else {
-        // Start next round
-        console.log('🔄 Starting next round:', currentRound + 1);
-        setCurrentRound(prev => prev + 1);
+        // Continue to next round
+        setCurrentRound(currentRound + 1);
+        setPlayerScore(newPlayerScore);
+        setAiScore(newAiScore);
         setBattlePhase('setup');
+        setRoundComplete(true); // Enable analysis button for completed round
       }
     }, 3000);
+  };
+
+  // Generate Groq analysis for the completed round
+  const generateGroqAnalysis = async () => {
+    if (!roundResults.length) {
+      console.log('No round results to analyze');
+      return;
+    }
+
+    setAnalysisLoading(true);
+    try {
+      const groqService = new GroqTradingAnalysisService();
+      const lastResult = roundResults[roundResults.length - 1];
+
+      // Mock simulation data based on round results
+      const simulationData = {
+        round_number: lastResult.round,
+        duration_minutes: 0.5, // 30 seconds
+        starting_portfolio_value: gameConfig.initialCash,
+        ending_portfolio_value: lastResult.playerScore,
+        market_conditions: {
+          volatility: 0.15,
+          trend: 'sideways' as const,
+          major_events: ['Trading round completed', 'Battle system active']
+        },
+        user_decisions: [], // Would be populated from actual trading data
+        ai_decisions: [], // Would be populated from actual AI trading data
+        final_user_return: (lastResult.playerScore - gameConfig.initialCash) / gameConfig.initialCash,
+        final_ai_return: (lastResult.aiScore - gameConfig.initialCash) / gameConfig.initialCash
+      };
+
+      const analysis = await groqService.analyzeTradingPerformance(simulationData);
+      setGroqAnalysis(analysis);
+      console.log('✅ Groq analysis completed:', analysis);
+    } catch (error) {
+      console.error('Failed to generate Groq analysis:', error);
+    } finally {
+      setAnalysisLoading(false);
+    }
   };
 
   const getBattleStatus = () => {
@@ -333,6 +380,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
         isAITurn={false}
         onComplete={handlePlayerComplete}
         roundNumber={currentRound}
+        timeFrame={gameConfig.timeframe || 7}
       />
     );
   }
@@ -355,6 +403,7 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
         isAITurn={true}
         onComplete={handleAIComplete}
         roundNumber={currentRound}
+        timeFrame={gameConfig.timeframe || 7}
       />
     );
   }

@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { PortfolioView } from './PortfolioView';
-import { TradingModal } from './TradingModal';
-import { NewsTicker } from './NewsTicker';
-import { CharacterPopup } from './CharacterPopup';
-import { AITradingFeed } from './AITradingFeed';
-import { GameConfig } from './GameSetup';
-import { gameApi, Client, Portfolio } from '../services/gameApi';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthContext } from '../contexts/AuthContext';
+import { GameConfig } from './GameSetup';
+import GroqTradingAnalysisService, { TradingDecision, SimulationData } from '../services/groqAnalysis';
+import { stockClientService, STOCK_DEFINITIONS, StockPrediction } from '../services/stockClientService';
+import { PortfolioView } from './PortfolioView';
+import { TradingModal } from './TradingModal';
+import { CharacterPopup } from './CharacterPopup';
+import { AITradingFeed } from './AITradingFeed';
+import { gameApi, Client, Portfolio } from '../services/gameApi';
 
 interface StockData {
   time: string;
@@ -36,23 +37,17 @@ interface SimpleTradingGameProps {
   isAITurn: boolean;
   onComplete: (score: number) => void;
   roundNumber: number;
+  timeFrame?: number; // Time frame for predictions in days
 }
 
-// Mock stock data
-const MOCK_STOCKS: Stock[] = [
-  { symbol: 'TECH', name: 'TechCorp', price: 150.00, change: 0 },
-  { symbol: 'ENER', name: 'EnergyPlus', price: 89.50, change: 0 },
-  { symbol: 'HEAL', name: 'HealthMax', price: 210.75, change: 0 },
-  { symbol: 'FINA', name: 'FinanceOne', price: 95.25, change: 0 },
-  { symbol: 'AUTO', name: 'AutoDrive', price: 120.30, change: 0 },
-  { symbol: 'RETA', name: 'RetailPro', price: 75.80, change: 0 }
-];
 
-export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumber }: SimpleTradingGameProps) {
+export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumber, timeFrame = 7 }: SimpleTradingGameProps) {
   const { getAccessTokenSilently } = useAuth0();
   const { updateGameStats } = useAuthContext();
-  const [stocks, setStocks] = useState(MOCK_STOCKS);
-  const [selectedStock, setSelectedStock] = useState(MOCK_STOCKS[0]);
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [stockPredictions, setStockPredictions] = useState<StockPrediction[]>([]);
+  const [stockClientsInitialized, setStockClientsInitialized] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [chartData, setChartData] = useState<StockData[]>([]);
   const [portfolio, setPortfolio] = useState<{[key: string]: number}>({});
   const [cash, setCash] = useState(gameConfig.initialCash);
@@ -73,6 +68,14 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
   // AI trading state - separate cash and portfolio
   const [aiCash, setAiCash] = useState(gameConfig.initialCash);
   const [aiPortfolio, setAiPortfolio] = useState<{[key: string]: number}>({});
+  
+  // Trading decision tracking for Groq analysis
+  const [userDecisions, setUserDecisions] = useState<TradingDecision[]>([]);
+  const [aiDecisions, setAiDecisions] = useState<TradingDecision[]>([]);
+  const [roundStartTime] = useState(Date.now());
+  const [groqAnalysis, setGroqAnalysis] = useState<GroqAnalysisResponse | null>(null);
+  const [showAnalysisReport, setShowAnalysisReport] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   // Reset game state when round changes
   useEffect(() => {
@@ -85,64 +88,77 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     setPortfolio({});
     setAiCash(gameConfig.initialCash);
     setAiPortfolio({});
+    // Reset Groq analysis tracking
+    setUserDecisions([]);
+    setAiDecisions([]);
+    setGroqAnalysis(null);
+    setShowAnalysisReport(false);
+    setAnalysisLoading(false);
     console.log('🔄 Round reset for round:', roundNumber, 'isAITurn:', isAITurn);
   }, [roundNumber, gameConfig.initialCash]); // Removed isAITurn dependency
 
-  // Initialize RBC InvestEase client and portfolio
+  // Initialize stock clients and load predictions
   useEffect(() => {
-    const initializeRBC = async () => {
+    const initializeStockClients = async () => {
+      if (stockClientsInitialized) return;
+      
       try {
-        // Initialize API from storage
-        gameApi.initializeFromStorage();
+        console.log('🏗️ Initializing stock clients with timeFrame:', timeFrame);
         
-        if (!gameApi.isAuthenticated()) {
-          // Register team if not authenticated
-          await gameApi.registerTeam({
-            team_name: gameConfig.teamName,
-            contact_email: gameConfig.contactEmail
-          });
-        }
-
-        // Create or get client
-        const clients = await gameApi.getClients();
-        let client = clients.find(c => c.email === gameConfig.contactEmail);
+        // Generate a team ID for this session
+        const teamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
-        if (!client) {
-          client = await gameApi.createClient({
-            name: gameConfig.teamName,
-            email: gameConfig.contactEmail,
-            cash: gameConfig.initialCash
-          });
-        }
-
-        setRbcClient(client);
-
-        // Create or get portfolio
-        const portfolios = await gameApi.getPortfolios(client.id);
-        let portfolio = portfolios.find(p => p.type === 'balanced');
+        // Initialize stock clients
+        await stockClientService.initialize(teamId);
         
-        if (!portfolio) {
-          portfolio = await gameApi.createPortfolio(client.id, {
-            type: 'balanced',
-            initialAmount: gameConfig.initialCash
-          });
+        // Load initial stock data with predictions
+        const predictions = await stockClientService.getAllPredictions(timeFrame);
+        setStockPredictions(predictions);
+        
+        // Convert STOCK_DEFINITIONS to Stock objects with predictions
+        const stocksWithPredictions = STOCK_DEFINITIONS.map(stockDef => {
+          const prediction = predictions.find(p => p.symbol === stockDef.symbol);
+          return {
+            ...stockDef,
+            prediction: prediction?.prediction || 0
+          };
+        });
+        
+        setStocks(stocksWithPredictions);
+        if (stocksWithPredictions.length > 0) {
+          setSelectedStock(stocksWithPredictions[0]);
         }
-
-        setRbcPortfolio(portfolio);
-        setRbcValue(portfolio.current_value);
-
+        setStockClientsInitialized(true);
+        
+        console.log('✅ Stock clients initialized with predictions:', predictions);
       } catch (error) {
-        console.error('Failed to initialize RBC InvestEase:', error);
-        // Fallback to mock values
-        setRbcValue(gameConfig.initialCash);
+        console.error('❌ Failed to initialize stock clients:', error);
+        // Fallback to basic stock data without predictions
+        const fallbackStocks = STOCK_DEFINITIONS.map(stockDef => ({
+          ...stockDef,
+          prediction: 0
+        }));
+        setStocks(fallbackStocks);
+        if (fallbackStocks.length > 0) {
+          setSelectedStock(fallbackStocks[0]);
+        }
       }
     };
-
-    initializeRBC();
+    
+    initializeStockClients();
+  }, [timeFrame, stockClientsInitialized]);
+  
+  // Initialize RBC InvestEase client and portfolio (legacy) - DISABLED
+  // This legacy initialization is causing conflicts with the new stock-specific clients
+  useEffect(() => {
+    // Set fallback value for RBC since we're using stock-specific clients now
+    setRbcValue(gameConfig.initialCash);
   }, [gameConfig]);
 
   // Initialize chart data
   useEffect(() => {
+    if (!selectedStock) return;
+    
     const initialData: StockData[] = [];
     for (let i = 0; i < 20; i++) {
       initialData.push({
@@ -151,7 +167,7 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
       });
     }
     setChartData(initialData);
-  }, [selectedStock.symbol]);
+  }, [selectedStock]);
 
   // Update stock prices and chart
   useEffect(() => {
@@ -292,9 +308,11 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
 
   // AI trading logic - Proper cash and portfolio management
   useEffect(() => {
-    if (!isAITurn || gameComplete) return;
+    if (!isAITurn || gameComplete || stocks.length === 0) return;
     
     console.log('🤖 AI trading started for round:', roundNumber);
+    
+    let aiTradeInterval: NodeJS.Timeout;
     
     const rbcInvestEaseStrategy = async () => {
       try {
@@ -358,11 +376,13 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     // Execute AI strategy every 2-4 seconds
     const interval = 2000 + Math.random() * 2000;
     console.log('🤖 Setting AI trade interval:', interval);
-    const aiTradeInterval = setInterval(rbcInvestEaseStrategy, interval);
+    aiTradeInterval = setInterval(rbcInvestEaseStrategy, interval);
 
     return () => {
       console.log('🤖 Clearing AI trade interval');
-      clearInterval(aiTradeInterval);
+      if (aiTradeInterval) {
+        clearInterval(aiTradeInterval);
+      }
     };
   }, [isAITurn, gameComplete, roundNumber, stocks]);
 
@@ -405,19 +425,130 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     );
   }, []);
 
+  // Track trading decisions for Groq analysis
+  const trackUserDecision = (action: 'buy' | 'sell', stock: Stock, quantity: number = 1) => {
+    const portfolioValueBefore = totalValue;
+    const portfolioValueAfter = action === 'buy' 
+      ? totalValue - stock.price * quantity
+      : totalValue + stock.price * quantity;
+
+    const decision: TradingDecision = {
+      timestamp: new Date().toISOString(),
+      action,
+      symbol: stock.symbol,
+      quantity,
+      price: stock.price,
+      portfolio_value_before: portfolioValueBefore,
+      portfolio_value_after: portfolioValueAfter,
+      reasoning: `User ${action} decision for ${stock.name}`
+    };
+
+    setUserDecisions(prev => [...prev, decision]);
+  };
+
+  // Track AI decisions (called when AI makes trades)
+  const trackAIDecision = (action: 'buy' | 'sell', stock: Stock, quantity: number = 1) => {
+    const aiPortfolioValue = Object.entries(aiPortfolio).reduce((total, [symbol, shares]) => {
+      const stockData = stocks.find(s => s.symbol === symbol);
+      return total + (stockData ? stockData.price * (shares as number) : 0);
+    }, 0);
+    
+    const portfolioValueBefore = aiCash + aiPortfolioValue;
+    const portfolioValueAfter = action === 'buy' 
+      ? portfolioValueBefore - stock.price * quantity
+      : portfolioValueBefore + stock.price * quantity;
+
+    const decision: TradingDecision = {
+      timestamp: new Date().toISOString(),
+      action,
+      symbol: stock.symbol,
+      quantity,
+      price: stock.price,
+      portfolio_value_before: portfolioValueBefore,
+      portfolio_value_after: portfolioValueAfter,
+      reasoning: `AI ${action} decision for ${stock.name}`
+    };
+
+    setAiDecisions(prev => [...prev, decision]);
+  };
+
+  // Generate Groq analysis after round completion
+  const generateGroqAnalysis = async () => {
+    if (!userDecisions.length && !aiDecisions.length) {
+      console.log('No trading decisions to analyze');
+      return;
+    }
+
+    setAnalysisLoading(true);
+    try {
+      const groqService = new GroqTradingAnalysisService();
+      
+      const simulationData: SimulationData = {
+        round_number: roundNumber,
+        duration_minutes: totalTime / 60,
+        starting_portfolio_value: gameConfig.initialCash,
+        ending_portfolio_value: totalValue,
+        market_conditions: {
+          volatility: 0.15, // Mock volatility
+          trend: 'sideways', // Mock trend
+          major_events: ['Market opened', 'Trading session active']
+        },
+        user_decisions: userDecisions,
+        ai_decisions: aiDecisions,
+        final_user_return: (totalValue - gameConfig.initialCash) / gameConfig.initialCash,
+        final_ai_return: (rbcValue - gameConfig.initialCash) / gameConfig.initialCash
+      };
+
+      const analysis = await groqService.analyzeTradingPerformance(simulationData);
+      setGroqAnalysis(analysis);
+      console.log('✅ Groq analysis completed:', analysis);
+    } catch (error) {
+      console.error('Failed to generate Groq analysis:', error);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  };
+
   const buyStock = (stock: Stock) => {
     if (cash >= stock.price) {
-      setCash(cash - stock.price);
+      const newCash = cash - stock.price;
+      const newShares = (portfolio[stock.symbol] || 0) + 1;
+      
+      setCash(newCash);
       setPortfolio(prev => ({
         ...prev,
         [stock.symbol]: (prev[stock.symbol] || 0) + 1
       }));
+      
+      console.log(`💰 BUY TRANSACTION:`, {
+        stock: stock.symbol,
+        name: stock.name,
+        price: stock.price,
+        shares_purchased: 1,
+        new_total_shares: newShares,
+        cash_before: cash,
+        cash_after: newCash,
+        timestamp: new Date().toISOString()
+      });
+      
+      trackUserDecision('buy', stock);
+    } else {
+      console.log(`❌ BUY FAILED - Insufficient funds:`, {
+        stock: stock.symbol,
+        price: stock.price,
+        available_cash: cash,
+        shortfall: stock.price - cash
+      });
     }
   };
 
   const sellStock = (stock: Stock) => {
     if (portfolio[stock.symbol] > 0) {
-      setCash(cash + stock.price);
+      const newCash = cash + stock.price;
+      const currentShares = portfolio[stock.symbol];
+      const newShares = currentShares - 1;
+      
+      setCash(newCash);
       setPortfolio(prev => {
         const newPortfolio = {
           ...prev,
@@ -429,12 +560,31 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
         }
         return newPortfolio;
       });
+      
+      console.log(`💸 SELL TRANSACTION:`, {
+        stock: stock.symbol,
+        name: stock.name,
+        price: stock.price,
+        shares_sold: 1,
+        shares_before: currentShares,
+        shares_after: newShares,
+        cash_before: cash,
+        cash_after: newCash,
+        profit_loss: stock.price,
+        timestamp: new Date().toISOString()
+      });
+      
+      trackUserDecision('sell', stock);
+    } else {
+      console.log(`❌ SELL FAILED - No shares to sell:`, {
+        stock: stock.symbol,
+        current_shares: portfolio[stock.symbol] || 0
+      });
     }
   };
 
   return (
     <div className="relative">
-      <NewsTicker />
       <CharacterPopup onEventTrigger={handleEventTrigger} />
       
       <PortfolioView
@@ -455,7 +605,7 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
         portfolio={portfolio}
         cash={cash}
         chartData={chartData}
-        selectedStock={selectedStock}
+        selectedStock={selectedStock || stocks[0]}
         onSelectStock={setSelectedStock}
         onBuy={buyStock}
         onSell={sellStock}
@@ -468,7 +618,157 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
           startValue={startValue}
         />
       )}
+
+      {/* Groq Analysis Report Button - Show after game completion */}
+      {gameComplete && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <button
+            onClick={() => {
+              if (!groqAnalysis) {
+                generateGroqAnalysis();
+              }
+              setShowAnalysisReport(true);
+            }}
+            disabled={analysisLoading}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 
+                     text-white font-bold py-3 px-6 rounded-lg shadow-lg transform hover:scale-105 
+                     transition-all duration-200 pixel-font border-2 neon-border-blue"
+          >
+            {analysisLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Analyzing...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                🧠 View AI Analysis
+              </div>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Groq Analysis Report Modal */}
+      {showAnalysisReport && groqAnalysis && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-black border-2 neon-border-purple rounded-xl 
+                        max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="bg-purple-900/30 border-b border-purple-400/30 p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-purple-300 pixel-font">
+                  🧠 AI TRADING ANALYSIS - ROUND {roundNumber}
+                </h2>
+                <button
+                  onClick={() => setShowAnalysisReport(false)}
+                  className="text-gray-400 hover:text-white text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Performance Overview */}
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-900/30 border border-blue-400/30 rounded-lg p-4">
+                  <h3 className="text-blue-300 font-bold pixel-font mb-2">YOUR SCORE</h3>
+                  <div className="text-3xl font-bold text-white">
+                    {groqAnalysis.overall_performance.user_score}/100
+                  </div>
+                </div>
+                <div className="bg-green-900/30 border border-green-400/30 rounded-lg p-4">
+                  <h3 className="text-green-300 font-bold pixel-font mb-2">AI SCORE</h3>
+                  <div className="text-3xl font-bold text-white">
+                    {groqAnalysis.overall_performance.ai_score}/100
+                  </div>
+                </div>
+                <div className="bg-yellow-900/30 border border-yellow-400/30 rounded-lg p-4">
+                  <h3 className="text-yellow-300 font-bold pixel-font mb-2">PERFORMANCE GAP</h3>
+                  <div className={`text-3xl font-bold ${
+                    groqAnalysis.overall_performance.performance_gap > 0 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {groqAnalysis.overall_performance.performance_gap > 0 ? '+' : ''}
+                    {groqAnalysis.overall_performance.performance_gap.toFixed(1)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Insights */}
+              <div className="bg-indigo-900/30 border border-indigo-400/30 rounded-lg p-4">
+                <h3 className="text-indigo-300 font-bold pixel-font mb-3">💡 KEY INSIGHTS</h3>
+                <ul className="space-y-2">
+                  {groqAnalysis.key_insights.map((insight, index) => (
+                    <li key={index} className="text-gray-200 retro-body flex items-start gap-2">
+                      <span className="text-indigo-400 mt-1">•</span>
+                      {insight}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* AI Comparison */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-900/30 border border-green-400/30 rounded-lg p-4">
+                  <h3 className="text-green-300 font-bold pixel-font mb-3">🤖 WHAT AI DID BETTER</h3>
+                  <ul className="space-y-2">
+                    {groqAnalysis.ai_comparison.what_ai_did_better.map((item, index) => (
+                      <li key={index} className="text-gray-200 retro-body text-sm flex items-start gap-2">
+                        <span className="text-green-400 mt-1">✓</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-blue-900/30 border border-blue-400/30 rounded-lg p-4">
+                  <h3 className="text-blue-300 font-bold pixel-font mb-3">👤 WHAT YOU DID BETTER</h3>
+                  <ul className="space-y-2">
+                    {groqAnalysis.ai_comparison.what_user_did_better.map((item, index) => (
+                      <li key={index} className="text-gray-200 retro-body text-sm flex items-start gap-2">
+                        <span className="text-blue-400 mt-1">✓</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Learning Recommendations */}
+              <div className="bg-orange-900/30 border border-orange-400/30 rounded-lg p-4">
+                <h3 className="text-orange-300 font-bold pixel-font mb-3">📚 LEARNING RECOMMENDATIONS</h3>
+                <ul className="space-y-2">
+                  {groqAnalysis.learning_recommendations.map((rec, index) => (
+                    <li key={index} className="text-gray-200 retro-body flex items-start gap-2">
+                      <span className="text-orange-400 mt-1">📖</span>
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Next Round Tips */}
+              <div className="bg-purple-900/30 border border-purple-400/30 rounded-lg p-4">
+                <h3 className="text-purple-300 font-bold pixel-font mb-3">🎯 NEXT ROUND TIPS</h3>
+                <ul className="space-y-2">
+                  {groqAnalysis.next_round_tips.map((tip, index) => (
+                    <li key={index} className="text-gray-200 retro-body flex items-start gap-2">
+                      <span className="text-purple-400 mt-1">💡</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-900/50 border-t border-gray-600 p-4 text-center">
+              <p className="text-gray-400 text-sm retro-body">
+                Analysis powered by Groq AI • Keep practicing to improve your trading skills!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

@@ -20,6 +20,13 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
+  // Skip JWT verification if no AUTH0_DOMAIN is configured
+  if (!process.env.AUTH0_DOMAIN) {
+    console.log('⚠️ Auth0 not configured, skipping token verification');
+    req.user = { sub: 'mock-user', email: 'mock@example.com' };
+    return next();
+  }
+
   jwt.verify(token, getKey, {
     audience: process.env.AUTH0_AUDIENCE,
     issuer: `https://${process.env.AUTH0_DOMAIN}/`,
@@ -27,6 +34,12 @@ const authenticateToken = (req, res, next) => {
   }, (err, decoded) => {
     if (err) {
       console.error('Token verification failed:', err);
+      // For development, allow through with mock user
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Development mode: Using mock user');
+        req.user = { sub: 'mock-user', email: 'mock@example.com' };
+        return next();
+      }
       return res.status(403).json({ error: 'Invalid token' });
     }
 

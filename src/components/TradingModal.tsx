@@ -43,7 +43,7 @@ export function TradingModal({
   onSell,
   isTrading = false
 }: TradingModalProps) {
-  const currentPrice = chartData[chartData.length - 1]?.price || selectedStock.price;
+  const currentPrice = chartData[chartData.length - 1]?.price || selectedStock?.price || 0;
   const isPositive = chartData.length > 1 ? 
     currentPrice > chartData[chartData.length - 2].price : true;
 
@@ -116,7 +116,7 @@ export function TradingModal({
                         <Button
                           size="sm"
                           className="bg-green-600 hover:bg-green-500 border-2 border-green-400 flex-1 pixel-font neon-border"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             onBuy(stock);
                           }}
@@ -128,7 +128,7 @@ export function TradingModal({
                           size="sm"
                           variant="outline"
                           className="border-2 border-red-400 text-red-400 hover:bg-red-400 hover:text-white flex-1 pixel-font bg-gray-900"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             onSell(stock);
                           }}

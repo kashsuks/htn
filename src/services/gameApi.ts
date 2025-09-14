@@ -1,5 +1,5 @@
 // Game API Service - Calls our backend which proxies to RBC InvestEase API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export interface TeamRegistration {
   team_name: string;
@@ -67,7 +67,7 @@ class GameApiService {
 
   // Register team and get JWT token
   async registerTeam(teamData: TeamRegistration): Promise<TeamAuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/rbc/teams/register`, {
+    const response = await fetch(`https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev/teams/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -117,10 +117,13 @@ class GameApiService {
 
   // Create a new client
   async createClient(clientData: { name: string; email: string; cash: number }): Promise<Client> {
-    const response = await fetch(`${API_BASE_URL}/api/rbc/clients`, {
+    const response = await fetch(`https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev/clients`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ ...clientData, token: this.token }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.token}`
+      },
+      body: JSON.stringify(clientData),
     });
 
     if (!response.ok) {
@@ -134,8 +137,11 @@ class GameApiService {
 
   // Get all clients for the team
   async getClients(): Promise<Client[]> {
-    const response = await fetch(`${API_BASE_URL}/api/rbc/clients?token=${this.token}`, {
+    const response = await fetch(`https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev/clients`, {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.token}`
+      }
     });
 
     if (!response.ok) {
@@ -149,8 +155,11 @@ class GameApiService {
 
   // Get specific client
   async getClient(clientId: string): Promise<Client> {
-    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}?token=${this.token}`, {
+    const response = await fetch(`https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev/clients/${clientId}`, {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.token}`
+      }
     });
 
     if (!response.ok) {
@@ -163,10 +172,13 @@ class GameApiService {
 
   // Create a portfolio for a client
   async createPortfolio(clientId: string, portfolioData: { type: string; initialAmount: number }): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}/portfolios`, {
+    const response = await fetch(`https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev/clients/${clientId}/portfolios`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ ...portfolioData, token: this.token }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.token}`
+      },
+      body: JSON.stringify(portfolioData),
     });
 
     if (!response.ok) {
@@ -180,8 +192,11 @@ class GameApiService {
 
   // Get portfolios for a client
   async getPortfolios(clientId: string): Promise<Portfolio[]> {
-    const response = await fetch(`${API_BASE_URL}/api/rbc/clients/${clientId}/portfolios?token=${this.token}`, {
+    const response = await fetch(`https://2dcq63co40.execute-api.us-east-1.amazonaws.com/dev/clients/${clientId}/portfolios`, {
       method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.token}`
+      }
     });
 
     if (!response.ok) {
