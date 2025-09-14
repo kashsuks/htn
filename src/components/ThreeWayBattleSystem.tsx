@@ -53,7 +53,6 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   const [investEaseValue, setInvestEaseValue] = useState(gameConfig.initialCash);
   const [investEaseStrategy, setInvestEaseStrategy] = useState('');
   const [investEaseComplete, setInvestEaseComplete] = useState(false);
-  const [rbcApiCalled, setRbcApiCalled] = useState(false);
   const [timeLeft, setTimeLeft] = useState(gameConfig.timeframe * 5); // 5 seconds per day
   const [currentDay, setCurrentDay] = useState(1);
   const [gameComplete, setGameComplete] = useState(false);
@@ -110,11 +109,6 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     if (gameComplete || !['human', 'autonomous'].includes(battlePhase)) return;
 
     const interval = setInterval(() => {
-      // Stop updating if time is up
-      if (timeLeft <= 0) {
-        return;
-      }
-      
       setStocks(prevStocks => {
         const updatedStocks = prevStocks.map(stock => {
           // Generate realistic price movement (-5% to +5%)
@@ -122,7 +116,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           const newPrice = Math.max(1, stock.price * (1 + changePercent / 100));
           const change = newPrice - stock.price;
           
-          console.log(`📊 ${stock.symbol}: $${stock.price.toFixed(2)} → $${newPrice.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%)`);
+          console.log(`📊 ${stock.symbol}: $${stock.price.toFixed(2)} → $${newPrice.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`);
           
           return {
             ...stock,
@@ -163,7 +157,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [gameComplete, battlePhase, currentDay, gameConfig.timeframe, timeLeft]);
+  }, [gameComplete, battlePhase, currentDay, gameConfig.timeframe]);
 
   // Timer countdown - ONLY for Human and Autonomous AI (NO AUTO-COMPLETION)
   useEffect(() => {
@@ -251,11 +245,6 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     if (battlePhase !== 'autonomous' || gameComplete) return;
 
     const interval = setInterval(() => {
-      // Stop trading if time is up
-      if (timeLeft <= 0) {
-        return;
-      }
-      
       // Autonomous AI makes trading decisions
       stocks.forEach(stock => {
         const currentShares = autonomousPortfolio[stock.symbol] || 0;
@@ -307,121 +296,88 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     }, 3000); // AI trades every 3 seconds
 
     return () => clearInterval(interval);
-  }, [battlePhase, gameComplete, stocks, autonomousCash, autonomousPortfolio, timeLeft]);
+  }, [battlePhase, gameComplete, stocks, autonomousCash, autonomousPortfolio]);
 
   // InvestEase simulation (using RBC API) - Independent simulation
   useEffect(() => {
-    if (battlePhase !== 'investease' || rbcApiCalled) return;
+    if (battlePhase !== 'investease') return;
 
     // Run InvestEase simulation once at the start of the turn
     const runInvestEaseSimulation = async () => {
-      setRbcApiCalled(true);
       console.log('🏦 Starting InvestEase independent simulation...');
       
       // Show loading state
       setInvestEaseStrategy('Connecting to RBC API...');
       
-       try {
-         const token = localStorage.getItem('game_token');
-         if (token) {
-           setInvestEaseStrategy('Creating InvestEase client...');
-           
-           // First create a client for InvestEase simulation
-           const createClientResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/rbc/clients`, {
-             method: 'POST',
-             headers: {
-               'Content-Type': 'application/json',
-               'Authorization': `Bearer ${token}`
-             },
-             body: JSON.stringify({
-               name: 'InvestEase Simulator',
-               email: 'investease@rbc.com',
-               cash: gameConfig.initialCash,
-               token: token
-             })
-           });
+      try {
+        const token = localStorage.getItem('game_token');
+        if (token) {
+          setInvestEaseStrategy('Sending simulation request...');
+          
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/rbc/client/simulate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              months: Math.ceil(gameConfig.timeframe / 30),
+              token: token
+            })
+          });
 
-           if (createClientResponse.ok) {
-             const clientData = await createClientResponse.json();
-             const clientId = clientData.client?.id || clientData.id;
-             
-             setInvestEaseStrategy('Sending simulation request...');
-             
-             // Now run the simulation with the created client
-             const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/rbc/client/${clientId}/simulate`, {
-               method: 'POST',
-               headers: {
-                 'Content-Type': 'application/json',
-                 'Authorization': `Bearer ${token}`
-               },
-               body: JSON.stringify({
-                 months: Math.ceil(gameConfig.timeframe / 30),
-                 token: token
-               })
-             });
-
-             // Mark InvestEase as complete immediately after API request
-             setInvestEaseComplete(true);
-
-             if (response.ok) {
-               setInvestEaseStrategy('Processing simulation results...');
-               const simulationData = await response.json();
-               if (simulationData.results && simulationData.results.length > 0) {
-                 const result = simulationData.results[0];
-                 const finalValue = result.projectedValue || result.endingValue || gameConfig.initialCash;
-                 setInvestEaseValue(finalValue);
-                 setInvestEaseStrategy(result.strategy || 'RBC InvestEase AI Portfolio Management');
-                 setInvestEasePortfolio({});
-                 setInvestEaseCash(finalValue);
-                 setInvestEaseComplete(true);
-                 
-                 // Process growth_trend data for InvestEase trends
-                 if (result.growth_trend && Array.isArray(result.growth_trend)) {
-                   const investEaseTrendData = result.growth_trend.map((point: any, index: number) => ({
-                     day: index,
-                     value: point.value
-                   }));
-                   setInvestEaseTrends(investEaseTrendData);
-                   console.log('🏦 InvestEase growth trend processed:', investEaseTrendData.length, 'data points');
-                 }
-                 
-                 console.log('🏦 InvestEase RBC simulation complete:', result);
-               }
-             } else {
-               console.warn('RBC simulation failed, using fallback');
-               throw new Error('Simulation failed');
-             }
-           } else {
-             console.warn('RBC client creation failed, using fallback');
-             throw new Error('Client creation failed');
-           }
-         } else {
-           // Fallback: InvestEase-style simulation with realistic market behavior
-           const strategies = ['balanced', 'conservative', 'aggressive', 'growth-focused'];
-           const strategy = strategies[Math.floor(Math.random() * strategies.length)];
-           const growthRate = 0.015 + Math.random() * 0.025; // 1.5-4% growth (more conservative)
-           const newValue = gameConfig.initialCash * (1 + growthRate);
-           setInvestEaseValue(newValue);
-           setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
-           setInvestEasePortfolio({});
-           setInvestEaseCash(newValue);
-           setInvestEaseComplete(true);
-           
-           // Generate realistic InvestEase-style trend data with market volatility
-           const fallbackTrendData = [];
-           let currentValue = gameConfig.initialCash;
-           for (let day = 0; day <= gameConfig.timeframe; day++) {
-             // Add some realistic market volatility
-             const dailyVolatility = (Math.random() - 0.5) * 0.02; // ±1% daily volatility
-             const trendGrowth = (newValue - gameConfig.initialCash) / gameConfig.timeframe;
-             currentValue += trendGrowth + (currentValue * dailyVolatility);
-             currentValue = Math.max(currentValue, gameConfig.initialCash * 0.8); // Prevent major losses
-             
-             fallbackTrendData.push({ day, value: currentValue });
-           }
-           setInvestEaseTrends(fallbackTrendData);
-           console.log('🏦 InvestEase fallback simulation complete with', fallbackTrendData.length, 'data points using', strategy, 'strategy');
-         }
+          if (response.ok) {
+            setInvestEaseStrategy('Processing simulation results...');
+            const simulationData = await response.json();
+            if (simulationData.results && simulationData.results.length > 0) {
+              const result = simulationData.results[0];
+              const finalValue = result.projectedValue || result.endingValue || gameConfig.initialCash;
+              setInvestEaseValue(finalValue);
+              setInvestEaseStrategy(result.strategy || 'RBC InvestEase AI Portfolio Management');
+              setInvestEasePortfolio({});
+              setInvestEaseCash(finalValue);
+              setInvestEaseComplete(true);
+              
+              // Process growth_trend data for InvestEase trends
+              if (result.growth_trend && Array.isArray(result.growth_trend)) {
+                const investEaseTrendData = result.growth_trend.map((point: any, index: number) => ({
+                  day: index,
+                  value: point.value
+                }));
+                setInvestEaseTrends(investEaseTrendData);
+                console.log('🏦 InvestEase growth trend processed:', investEaseTrendData.length, 'data points');
+              }
+              
+              console.log('🏦 InvestEase RBC simulation complete:', result);
+            }
+          }
+        } else {
+          // Fallback: InvestEase-style simulation with realistic market behavior
+          const strategies = ['balanced', 'conservative', 'aggressive', 'growth-focused'];
+          const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+          const growthRate = 0.015 + Math.random() * 0.025; // 1.5-4% growth (more conservative)
+          const newValue = gameConfig.initialCash * (1 + growthRate);
+          setInvestEaseValue(newValue);
+          setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
+          setInvestEasePortfolio({});
+          setInvestEaseCash(newValue);
+          setInvestEaseComplete(true);
+          
+          // Generate realistic InvestEase-style trend data with market volatility
+          const fallbackTrendData = [];
+          let currentValue = gameConfig.initialCash;
+          for (let day = 0; day <= gameConfig.timeframe; day++) {
+            // Add some realistic market volatility
+            const dailyVolatility = (Math.random() - 0.5) * 0.02; // ±1% daily volatility
+            const trendGrowth = (newValue - gameConfig.initialCash) / gameConfig.timeframe;
+            currentValue += trendGrowth + (currentValue * dailyVolatility);
+            currentValue = Math.max(currentValue, gameConfig.initialCash * 0.8); // Prevent major losses
+            
+            fallbackTrendData.push({ day, value: currentValue });
+          }
+          setInvestEaseTrends(fallbackTrendData);
+          console.log('🏦 InvestEase fallback simulation complete with', fallbackTrendData.length, 'data points using', strategy, 'strategy');
+        }
       } catch (error) {
         console.warn('RBC API failed, using fallback simulation:', error);
         // Fallback: InvestEase-style simulation with realistic market behavior
@@ -454,7 +410,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     runInvestEaseSimulation();
     
     // NO AUTOMATIC COMPLETION - User must click button to proceed
-  }, [battlePhase, gameConfig.timeframe, gameConfig.initialCash, rbcApiCalled]);
+  }, [battlePhase, gameConfig.timeframe, gameConfig.initialCash]);
 
   const calculateResults = useCallback(() => {
     const humanValue = calculateTotalValue(humanPortfolio, humanCash);
