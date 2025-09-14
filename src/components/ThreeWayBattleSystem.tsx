@@ -59,6 +59,10 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [battlePhase, setBattlePhase] = useState<'setup' | 'human' | 'autonomous' | 'investease' | 'results' | 'complete'>('setup');
   const [, setBattleResults] = useState<BattleResults | null>(null);
+  const [selectedTrader, setSelectedTrader] = useState<'human' | 'autonomous' | 'investease' | null>(null);
+  const [humanTrends, setHumanTrends] = useState<{day: number, value: number}[]>([]);
+  const [autonomousTrends, setAutonomousTrends] = useState<{day: number, value: number}[]>([]);
+  const [investEaseTrends, setInvestEaseTrends] = useState<{day: number, value: number}[]>([]);
   const { updateGameStats } = useAuthContext();
 
   // Stock definitions
@@ -98,9 +102,9 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     setStockHistory(initialHistory);
   }, []);
 
-  // Update stock prices every 5 seconds (daily)
+  // Update stock prices every 5 seconds (daily) - ONLY for Human and Autonomous AI
   useEffect(() => {
-    if (gameComplete || !['human', 'autonomous', 'investease'].includes(battlePhase)) return;
+    if (gameComplete || !['human', 'autonomous'].includes(battlePhase)) return;
 
     const interval = setInterval(() => {
       setStocks(prevStocks => {
@@ -143,6 +147,9 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           return newDay;
         });
         
+        // Update trends for all traders
+        updateTrends();
+        
         return updatedStocks;
       });
     }, 5000);
@@ -150,9 +157,9 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     return () => clearInterval(interval);
   }, [gameComplete, battlePhase, currentDay, gameConfig.timeframe]);
 
-  // Timer countdown
+  // Timer countdown - ONLY for Human and Autonomous AI
   useEffect(() => {
-    if (gameComplete || !['human', 'autonomous', 'investease'].includes(battlePhase)) return;
+    if (gameComplete || !['human', 'autonomous'].includes(battlePhase)) return;
 
     const interval = setInterval(() => {
       setTimeLeft(prev => {
@@ -176,6 +183,9 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   }, [gameComplete, battlePhase]);
 
   const handleTurnComplete = useCallback(() => {
+    // Update trends at the end of each phase
+    updateTrends();
+    
     if (battlePhase === 'human') {
       console.log('👤 Human turn complete, starting Autonomous AI...');
       setBattlePhase('autonomous');
@@ -189,6 +199,59 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
       calculateResults();
     }
   }, [battlePhase]);
+
+  const handleNextPhase = () => {
+    if (battlePhase === 'human') {
+      setBattlePhase('autonomous');
+      resetForNewTurn();
+    } else if (battlePhase === 'autonomous') {
+      setBattlePhase('investease');
+      resetForNewTurn();
+    } else if (battlePhase === 'investease') {
+      setBattlePhase('results');
+    }
+  };
+
+  const handleViewResults = () => {
+    // Calculate results on demand
+    const humanValue = calculateTotalValue(humanPortfolio, humanCash);
+    const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
+    const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
+
+    const humanReturn = ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const autonomousReturn = ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const investEaseReturn = ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+
+    let winner: 'human' | 'autonomousAI' | 'investease' = 'human';
+    let winnerReturn = humanReturn;
+    if (autonomousReturn > winnerReturn) {
+      winner = 'autonomousAI';
+      winnerReturn = autonomousReturn;
+    }
+    if (investEaseReturn > winnerReturn) {
+      winner = 'investease';
+      winnerReturn = investEaseReturn;
+    }
+
+    const results: BattleResults = {
+      human: {
+        finalValue: humanValue,
+        totalReturn: humanReturn
+      },
+      autonomousAI: {
+        finalValue: autonomousValue,
+        totalReturn: autonomousReturn
+      },
+      investEase: {
+        finalValue: investEaseValue,
+        totalReturn: investEaseReturn,
+        strategy: investEaseStrategy
+      },
+      winner
+    };
+
+    onBattleComplete(results);
+  };
 
   const resetForNewTurn = () => {
     setTimeLeft(gameConfig.timeframe * 5);
@@ -209,26 +272,43 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         
         // Simple AI logic: buy when price is low (red), sell when price is high (green)
         if (stock.changePercent < -2 && canBuy) {
-          // Buy when price drops significantly
-          const sharesToBuy = Math.floor(autonomousCash / stock.price);
-          if (sharesToBuy > 0) {
-            setAutonomousCash(prev => prev - (stock.price * sharesToBuy));
+          // Buy when price drops significantly - but only buy 1 share to be very conservative
+          const sharesToBuy = 1;
+          const totalCost = stock.price * sharesToBuy;
+          
+          // Triple check we have enough cash using current state
+          if (sharesToBuy > 0 && autonomousCash >= totalCost) {
+            setAutonomousCash(prev => {
+              // Final safety check
+              if (prev < totalCost) {
+                console.log(`🤖 AI insufficient funds: $${prev.toFixed(2)} < $${totalCost.toFixed(2)}`);
+                return prev;
+              }
+              const newCash = prev - totalCost;
+              console.log(`🤖 AI buying ${sharesToBuy} ${stock.symbol} @ $${stock.price.toFixed(2)} (Cost: $${totalCost.toFixed(2)}, Cash: $${prev.toFixed(2)} → $${newCash.toFixed(2)})`);
+              return newCash;
+            });
             setAutonomousPortfolio(prev => ({
               ...prev,
               [stock.symbol]: (prev[stock.symbol] || 0) + sharesToBuy
             }));
-            console.log(`🤖 AI bought ${sharesToBuy} ${stock.symbol} @ $${stock.price.toFixed(2)}`);
+          } else {
+            console.log(`🤖 AI cannot buy ${stock.symbol}: insufficient funds ($${autonomousCash.toFixed(2)} < $${totalCost.toFixed(2)})`);
           }
         } else if (stock.changePercent > 3 && canSell) {
           // Sell when price rises significantly
-          const sharesToSell = Math.floor(currentShares * 0.5); // Sell half
+          const sharesToSell = Math.min(1, currentShares); // Sell only 1 share at a time
           if (sharesToSell > 0) {
-            setAutonomousCash(prev => prev + (stock.price * sharesToSell));
+            const revenue = stock.price * sharesToSell;
+            setAutonomousCash(prev => {
+              const newCash = prev + revenue;
+              console.log(`🤖 AI sold ${sharesToSell} ${stock.symbol} @ $${stock.price.toFixed(2)} (Revenue: $${revenue.toFixed(2)}, Cash: $${prev.toFixed(2)} → $${newCash.toFixed(2)})`);
+              return newCash;
+            });
             setAutonomousPortfolio(prev => ({
               ...prev,
               [stock.symbol]: prev[stock.symbol] - sharesToSell
             }));
-            console.log(`🤖 AI sold ${sharesToSell} ${stock.symbol} @ $${stock.price.toFixed(2)}`);
           }
         }
       });
@@ -237,15 +317,22 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     return () => clearInterval(interval);
   }, [battlePhase, gameComplete, stocks, autonomousCash, autonomousPortfolio]);
 
-  // InvestEase simulation (using RBC API) - ONLY during InvestEase turn
+  // InvestEase simulation (using RBC API) - Independent simulation
   useEffect(() => {
     if (battlePhase !== 'investease') return;
 
     // Run InvestEase simulation once at the start of the turn
     const runInvestEaseSimulation = async () => {
+      console.log('🏦 Starting InvestEase independent simulation...');
+      
+      // Show loading state
+      setInvestEaseStrategy('Connecting to RBC API...');
+      
       try {
         const token = localStorage.getItem('game_token');
         if (token) {
+          setInvestEaseStrategy('Sending simulation request...');
+          
           const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/rbc/client/simulate`, {
             method: 'POST',
             headers: {
@@ -259,70 +346,126 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           });
 
           if (response.ok) {
+            setInvestEaseStrategy('Processing simulation results...');
             const simulationData = await response.json();
             if (simulationData.results && simulationData.results.length > 0) {
               const result = simulationData.results[0];
               const finalValue = result.projectedValue || result.endingValue || gameConfig.initialCash;
               setInvestEaseValue(finalValue);
               setInvestEaseStrategy(result.strategy || 'RBC InvestEase AI Portfolio Management');
-              // Update portfolio to reflect the final value
               setInvestEasePortfolio({});
               setInvestEaseCash(finalValue);
+              
+              // Process growth_trend data for InvestEase trends
+              if (result.growth_trend && Array.isArray(result.growth_trend)) {
+                const investEaseTrendData = result.growth_trend.map((point: any, index: number) => ({
+                  day: index,
+                  value: point.value
+                }));
+                setInvestEaseTrends(investEaseTrendData);
+                console.log('🏦 InvestEase growth trend processed:', investEaseTrendData.length, 'data points');
+              }
+              
               console.log('🏦 InvestEase RBC simulation complete:', result);
             }
           }
         } else {
-          // Fallback: simple growth simulation
-          const growthRate = 0.02 + Math.random() * 0.03; // 2-5% growth
+          // Fallback: InvestEase-style simulation with realistic market behavior
+          const strategies = ['balanced', 'conservative', 'aggressive', 'growth-focused'];
+          const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+          const growthRate = 0.015 + Math.random() * 0.025; // 1.5-4% growth (more conservative)
           const newValue = gameConfig.initialCash * (1 + growthRate);
           setInvestEaseValue(newValue);
-          setInvestEaseStrategy('Fallback Growth Simulation');
+          setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
           setInvestEasePortfolio({});
           setInvestEaseCash(newValue);
-          console.log('🏦 InvestEase fallback simulation complete');
+          
+          // Generate realistic InvestEase-style trend data with market volatility
+          const fallbackTrendData = [];
+          let currentValue = gameConfig.initialCash;
+          for (let day = 0; day <= gameConfig.timeframe; day++) {
+            // Add some realistic market volatility
+            const dailyVolatility = (Math.random() - 0.5) * 0.02; // ±1% daily volatility
+            const trendGrowth = (newValue - gameConfig.initialCash) / gameConfig.timeframe;
+            currentValue += trendGrowth + (currentValue * dailyVolatility);
+            currentValue = Math.max(currentValue, gameConfig.initialCash * 0.8); // Prevent major losses
+            
+            fallbackTrendData.push({ day, value: currentValue });
+          }
+          setInvestEaseTrends(fallbackTrendData);
+          console.log('🏦 InvestEase fallback simulation complete with', fallbackTrendData.length, 'data points using', strategy, 'strategy');
         }
       } catch (error) {
         console.warn('RBC API failed, using fallback simulation:', error);
-        // Fallback: simple growth simulation
-        const growthRate = 0.02 + Math.random() * 0.03; // 2-5% growth
+        // Fallback: InvestEase-style simulation with realistic market behavior
+        const strategies = ['balanced', 'conservative', 'aggressive', 'growth-focused'];
+        const strategy = strategies[Math.floor(Math.random() * strategies.length)];
+        const growthRate = 0.015 + Math.random() * 0.025; // 1.5-4% growth (more conservative)
         const newValue = gameConfig.initialCash * (1 + growthRate);
         setInvestEaseValue(newValue);
-        setInvestEaseStrategy('Fallback Growth Simulation');
+        setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
         setInvestEasePortfolio({});
         setInvestEaseCash(newValue);
-        console.log('🏦 InvestEase fallback simulation complete');
+        
+        // Generate realistic InvestEase-style trend data with market volatility
+        const fallbackTrendData = [];
+        let currentValue = gameConfig.initialCash;
+        for (let day = 0; day <= gameConfig.timeframe; day++) {
+          // Add some realistic market volatility
+          const dailyVolatility = (Math.random() - 0.5) * 0.02; // ±1% daily volatility
+          const trendGrowth = (newValue - gameConfig.initialCash) / gameConfig.timeframe;
+          currentValue += trendGrowth + (currentValue * dailyVolatility);
+          currentValue = Math.max(currentValue, gameConfig.initialCash * 0.8); // Prevent major losses
+          
+          fallbackTrendData.push({ day, value: currentValue });
+        }
+        setInvestEaseTrends(fallbackTrendData);
+        console.log('🏦 InvestEase fallback simulation complete with', fallbackTrendData.length, 'data points using', strategy, 'strategy');
       }
     };
 
     runInvestEaseSimulation();
     
-    // InvestEase turn completes immediately after simulation
+    // InvestEase turn completes after showing simulation process
     setTimeout(() => {
       console.log('🏦 InvestEase turn complete, calculating results...');
+      
+      // Update final trends before calculating results
+      updateTrends();
+      
       // Calculate results directly here instead of calling the function
       const humanValue = calculateTotalValue(humanPortfolio, humanCash);
       const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
       const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
 
+      // Calculate returns for proper winner determination
+      const humanReturn = ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+      const autonomousReturn = ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+      const investEaseReturn = ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+
       let winner: 'human' | 'autonomousAI' | 'investease' = 'human';
-      if (autonomousValue > humanValue && autonomousValue > investEaseValue) {
+      let winnerReturn = humanReturn;
+      if (autonomousReturn > winnerReturn) {
         winner = 'autonomousAI';
-      } else if (investEaseValue > humanValue && investEaseValue > autonomousValue) {
+        winnerReturn = autonomousReturn;
+      }
+      if (investEaseReturn > winnerReturn) {
         winner = 'investease';
+        winnerReturn = investEaseReturn;
       }
 
       const results: BattleResults = {
         human: {
           finalValue: humanValue,
-          totalReturn: ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100
+          totalReturn: humanReturn
         },
         autonomousAI: {
           finalValue: autonomousValue,
-          totalReturn: ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100
+          totalReturn: autonomousReturn
         },
         investEase: {
           finalValue: investEaseValue,
-          totalReturn: ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100,
+          totalReturn: investEaseReturn,
           strategy: investEaseStrategy
         },
         winner
@@ -345,10 +488,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         timestamp: new Date().toISOString()
       });
 
-      setTimeout(() => {
-        onBattleComplete(results);
-      }, 3000);
-    }, 2000); // Give 2 seconds for simulation to complete
+      // Don't automatically call onBattleComplete - let user click button
+    }, 5000); // Give 5 seconds to show the simulation process
   }, [battlePhase, gameConfig.timeframe, gameConfig.initialCash]);
 
   const calculateResults = useCallback(() => {
@@ -356,25 +497,34 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
     const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
 
+    // Calculate returns for proper winner determination
+    const humanReturn = ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const autonomousReturn = ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const investEaseReturn = ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+
     let winner: 'human' | 'autonomousAI' | 'investease' = 'human';
-    if (autonomousValue > humanValue && autonomousValue > investEaseValue) {
+    let winnerReturn = humanReturn;
+    if (autonomousReturn > winnerReturn) {
       winner = 'autonomousAI';
-    } else if (investEaseValue > humanValue && investEaseValue > autonomousValue) {
+      winnerReturn = autonomousReturn;
+    }
+    if (investEaseReturn > winnerReturn) {
       winner = 'investease';
+      winnerReturn = investEaseReturn;
     }
 
     const results: BattleResults = {
       human: {
         finalValue: humanValue,
-        totalReturn: ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100
+        totalReturn: humanReturn
       },
       autonomousAI: {
         finalValue: autonomousValue,
-        totalReturn: ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100
+        totalReturn: autonomousReturn
       },
       investEase: {
         finalValue: investEaseValue,
-        totalReturn: ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100,
+        totalReturn: investEaseReturn,
         strategy: investEaseStrategy
       },
       winner
@@ -397,9 +547,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
       timestamp: new Date().toISOString()
     });
 
-    setTimeout(() => {
-      onBattleComplete(results);
-    }, 3000);
+    onBattleComplete(results);
   }, [humanPortfolio, humanCash, autonomousPortfolio, autonomousCash, investEasePortfolio, investEaseCash, investEaseStrategy, gameConfig.initialCash, updateGameStats, onBattleComplete]);
 
   const calculateTotalValue = useCallback((portfolio: {[key: string]: number}, cash: number) => {
@@ -409,6 +557,61 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     }, 0);
     return cash + stockValue;
   }, [stocks]);
+
+  // Track money trends for each trader
+  const updateTrends = useCallback(() => {
+    const currentDay = Math.ceil((gameConfig.timeframe * 5 - timeLeft) / 5);
+    const humanValue = calculateTotalValue(humanPortfolio, humanCash);
+    const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
+    const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
+
+    setHumanTrends(prev => [...prev, { day: currentDay, value: humanValue }]);
+    setAutonomousTrends(prev => [...prev, { day: currentDay, value: autonomousValue }]);
+    setInvestEaseTrends(prev => [...prev, { day: currentDay, value: investEaseValue }]);
+  }, [timeLeft, humanPortfolio, humanCash, autonomousPortfolio, autonomousCash, investEasePortfolio, investEaseCash, gameConfig.timeframe, calculateTotalValue]);
+
+  // Initialize trends with starting values
+  useEffect(() => {
+    if (battlePhase === 'human' && humanTrends.length === 0) {
+      setHumanTrends([{ day: 0, value: gameConfig.initialCash }]);
+      setAutonomousTrends([{ day: 0, value: gameConfig.initialCash }]);
+      setInvestEaseTrends([{ day: 0, value: gameConfig.initialCash }]);
+    }
+  }, [battlePhase, humanTrends.length, gameConfig.initialCash]);
+
+  // Add final trend data when results are shown
+  useEffect(() => {
+    if (battlePhase === 'results') {
+      const humanValue = calculateTotalValue(humanPortfolio, humanCash);
+      const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
+      const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
+
+      // Add final values to trends if not already added
+      setHumanTrends(prev => {
+        const lastDay = prev.length > 0 ? prev[prev.length - 1].day : 0;
+        if (prev.length === 0 || prev[prev.length - 1].value !== humanValue) {
+          return [...prev, { day: lastDay + 1, value: humanValue }];
+        }
+        return prev;
+      });
+
+      setAutonomousTrends(prev => {
+        const lastDay = prev.length > 0 ? prev[prev.length - 1].day : 0;
+        if (prev.length === 0 || prev[prev.length - 1].value !== autonomousValue) {
+          return [...prev, { day: lastDay + 1, value: autonomousValue }];
+        }
+        return prev;
+      });
+
+      setInvestEaseTrends(prev => {
+        const lastDay = prev.length > 0 ? prev[prev.length - 1].day : 0;
+        if (prev.length === 0 || prev[prev.length - 1].value !== investEaseValue) {
+          return [...prev, { day: lastDay + 1, value: investEaseValue }];
+        }
+        return prev;
+      });
+    }
+  }, [battlePhase, humanPortfolio, humanCash, autonomousPortfolio, autonomousCash, investEasePortfolio, investEaseCash, calculateTotalValue]);
 
   const buyStock = useCallback((stock: Stock, shares: number = 1) => {
     const cost = stock.price * shares;
@@ -469,34 +672,220 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
     const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
 
+    // Calculate returns
+    const humanReturn = ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const autonomousReturn = ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const investEaseReturn = ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+
+    // Determine winner by highest return percentage
+    let winner = 'human';
+    let winnerReturn = humanReturn;
+    if (autonomousReturn > winnerReturn) {
+      winner = 'autonomous';
+      winnerReturn = autonomousReturn;
+    }
+    if (investEaseReturn > winnerReturn) {
+      winner = 'investease';
+      winnerReturn = investEaseReturn;
+    }
+
+    const getWinnerIcon = (trader: string) => {
+      if (trader === winner) return '👑';
+      return trader === 'human' ? '👤' : trader === 'autonomous' ? '🤖' : '🏦';
+    };
+
+    const getWinnerColor = (trader: string) => {
+      if (trader === winner) return 'neon-yellow';
+      return trader === 'human' ? 'neon-blue' : trader === 'autonomous' ? 'neon-purple' : 'neon-green';
+    };
+
     return (
       <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
-        <div className="text-center">
-          <h1 className="text-4xl neon-pink mb-8">🏆 BATTLE RESULTS</h1>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="border-4 neon-border-blue p-6" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
-              <h3 className="text-2xl neon-blue mb-4">👤 HUMAN</h3>
-              <div className="text-3xl neon-yellow mb-2">${humanValue.toFixed(2)}</div>
-              <div className={`text-xl ${((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'neon-green' : 'neon-red'}`}>
-                {((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
-              </div>
-            </div>
-            <div className="border-4 neon-border-purple p-6" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>
-              <h3 className="text-2xl neon-purple mb-4">🤖 AUTONOMOUS AI</h3>
-              <div className="text-3xl neon-yellow mb-2">${autonomousValue.toFixed(2)}</div>
-              <div className={`text-xl ${((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'neon-green' : 'neon-red'}`}>
-                {((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
-              </div>
-            </div>
-            <div className="border-4 neon-border-green p-6" style={{backgroundColor: 'rgba(0, 255, 0, 0.1)'}}>
-              <h3 className="text-2xl neon-green mb-4">🏦 INVESTEASE</h3>
-              <div className="text-3xl neon-yellow mb-2">${investEaseValue.toFixed(2)}</div>
-              <div className={`text-xl ${((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'neon-green' : 'neon-red'}`}>
-                {((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
-              </div>
-            </div>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl neon-pink mb-4">🏆 BATTLE RESULTS</h1>
+          <div className="text-2xl neon-yellow mb-2">
+            {winner === 'human' && '👤 HUMAN WINS!'}
+            {winner === 'autonomous' && '🤖 AUTONOMOUS AI WINS!'}
+            {winner === 'investease' && '🏦 INVESTEASE WINS!'}
+          </div>
+          <div className="text-lg text-white">
+            Highest Return: {winnerReturn >= 0 ? '+' : ''}{winnerReturn.toFixed(2)}%
           </div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Human Card */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`border-4 ${winner === 'human' ? 'neon-border-yellow' : 'neon-border-blue'} p-6 rounded-lg cursor-pointer`}
+            style={{backgroundColor: winner === 'human' ? 'rgba(255, 249, 0, 0.2)' : 'rgba(0, 225, 255, 0.1)'}}
+            onClick={() => setSelectedTrader('human')}
+          >
+            <div className="text-center">
+              <h3 className={`text-2xl ${getWinnerColor('human')} mb-4`}>
+                {getWinnerIcon('human')} HUMAN
+              </h3>
+              <div className="text-3xl neon-yellow mb-2">${humanValue.toFixed(2)}</div>
+              <div className={`text-xl ${humanReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+                {humanReturn >= 0 ? '+' : ''}{humanReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
+            </div>
+          </motion.div>
+
+          {/* Autonomous AI Card */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`border-4 ${winner === 'autonomous' ? 'neon-border-yellow' : 'neon-border-purple'} p-6 rounded-lg cursor-pointer`}
+            style={{backgroundColor: winner === 'autonomous' ? 'rgba(255, 249, 0, 0.2)' : 'rgba(97, 0, 255, 0.1)'}}
+            onClick={() => setSelectedTrader('autonomous')}
+          >
+            <div className="text-center">
+              <h3 className={`text-2xl ${getWinnerColor('autonomous')} mb-4`}>
+                {getWinnerIcon('autonomous')} AUTONOMOUS AI
+              </h3>
+              <div className="text-3xl neon-yellow mb-2">${autonomousValue.toFixed(2)}</div>
+              <div className={`text-xl ${autonomousReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+                {autonomousReturn >= 0 ? '+' : ''}{autonomousReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
+            </div>
+          </motion.div>
+
+          {/* InvestEase Card */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`border-4 ${winner === 'investease' ? 'neon-border-yellow' : 'neon-border-green'} p-6 rounded-lg cursor-pointer`}
+            style={{backgroundColor: winner === 'investease' ? 'rgba(255, 249, 0, 0.2)' : 'rgba(0, 255, 0, 0.1)'}}
+            onClick={() => setSelectedTrader('investease')}
+          >
+            <div className="text-center">
+              <h3 className={`text-2xl ${getWinnerColor('investease')} mb-4`}>
+                {getWinnerIcon('investease')} INVESTEASE
+              </h3>
+              <div className="text-3xl neon-yellow mb-2">${investEaseValue.toFixed(2)}</div>
+              <div className={`text-xl ${investEaseReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+                {investEaseReturn >= 0 ? '+' : ''}{investEaseReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Trend Graph Modal */}
+        {selectedTrader && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-gray-900 border-4 neon-border-blue p-8 rounded-lg shadow-lg w-full max-w-4xl relative text-white"
+            >
+              <button
+                onClick={() => setSelectedTrader(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl"
+              >
+                &times;
+              </button>
+              
+              <h2 className="text-3xl neon-cyan mb-4 text-center">
+                {selectedTrader === 'human' && '👤 HUMAN TRADER'}
+                {selectedTrader === 'autonomous' && '🤖 AUTONOMOUS AI'}
+                {selectedTrader === 'investease' && '🏦 INVESTEASE'}
+                {' '}MONEY TREND
+              </h2>
+              
+              {/* Debug info */}
+              <div className="text-sm text-gray-400 mb-4 text-center">
+                Data points: {(selectedTrader === 'human' ? humanTrends : 
+                  selectedTrader === 'autonomous' ? autonomousTrends : 
+                  investEaseTrends).length}
+                {selectedTrader === 'investease' && (
+                  <div className="mt-2">
+                    <div>Strategy: {investEaseStrategy}</div>
+                    <div>Simulation Method: {investEaseTrends.length > 0 ? 'RBC InvestEase API' : 'Fallback Growth'}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h3 className="text-xl neon-blue mb-2">Performance Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-white">Starting Value:</span>
+                      <span className="text-white">${gameConfig.initialCash.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white">Final Value:</span>
+                      <span className="text-cyan-400">
+                        ${selectedTrader === 'human' ? humanValue.toFixed(2) : 
+                          selectedTrader === 'autonomous' ? autonomousValue.toFixed(2) : 
+                          investEaseValue.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white">Total Return:</span>
+                      <span className={`${selectedTrader === 'human' ? humanReturn : 
+                        selectedTrader === 'autonomous' ? autonomousReturn : 
+                        investEaseReturn} >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {selectedTrader === 'human' ? (humanReturn >= 0 ? '+' : '') + humanReturn.toFixed(2) + '%' : 
+                         selectedTrader === 'autonomous' ? (autonomousReturn >= 0 ? '+' : '') + autonomousReturn.toFixed(2) + '%' : 
+                         (investEaseReturn >= 0 ? '+' : '') + investEaseReturn.toFixed(2) + '%'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl neon-blue mb-2">Trend Data</h3>
+                  <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                    <table className="min-w-full bg-gray-800 rounded-lg">
+                      <thead>
+                        <tr>
+                          <th className="py-2 px-4 border-b border-gray-700 text-left neon-blue">Day</th>
+                          <th className="py-2 px-4 border-b border-gray-700 text-left neon-blue">Value</th>
+                          <th className="py-2 px-4 border-b border-gray-700 text-left neon-blue">Change (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedTrader === 'human' ? humanTrends : 
+                          selectedTrader === 'autonomous' ? autonomousTrends : 
+                          investEaseTrends).length > 0 ? (
+                          (selectedTrader === 'human' ? humanTrends : 
+                            selectedTrader === 'autonomous' ? autonomousTrends : 
+                            investEaseTrends).map((point, index) => {
+                            const prevValue = index > 0 ? 
+                              (selectedTrader === 'human' ? humanTrends[index - 1].value : 
+                               selectedTrader === 'autonomous' ? autonomousTrends[index - 1].value : 
+                               investEaseTrends[index - 1].value) : gameConfig.initialCash;
+                            const changePercent = ((point.value - prevValue) / prevValue) * 100;
+                            return (
+                              <tr key={point.day} className="hover:bg-gray-700">
+                                <td className="py-2 px-4 border-b border-gray-700">{point.day}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">${point.value.toFixed(2)}</td>
+                                <td className={`py-2 px-4 border-b border-gray-700 ${changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className="py-4 px-4 text-center text-gray-400">
+                              No trend data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   }
@@ -664,6 +1053,18 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           </div>
         </div>
 
+        {/* Next Phase Button */}
+        <div className="text-center mt-8">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleNextPhase}
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            🤖 Start Autonomous AI Turn
+          </motion.button>
+        </div>
+
         {/* Stock History Modal */}
         <StockHistoryModal
           stock={selectedStock}
@@ -814,6 +1215,18 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
             </div>
           </div>
         </div>
+
+        {/* Next Phase Button */}
+        <div className="text-center mt-8">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleNextPhase}
+            className="px-8 py-4 bg-gradient-to-r from-green-600 to-teal-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            🏦 Start InvestEase Simulation
+          </motion.button>
+        </div>
       </div>
     );
   }
@@ -874,35 +1287,43 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         {/* InvestEase Status */}
         <div className="mb-8 text-center">
           <div className="text-2xl neon-green mb-4">🏦 INVESTEASE IS SIMULATING...</div>
-          <div className="text-lg text-white">Running RBC InvestEase portfolio simulation</div>
+          <div className="text-lg text-white mb-4">Running RBC InvestEase AI Portfolio Management</div>
+          <div className="text-sm text-gray-400 mb-4">
+            InvestEase uses its own independent stock market simulator<br/>
+            and applies AI-driven portfolio management strategies
+          </div>
+          <div className="text-lg neon-cyan mb-4">
+            Status: {investEaseStrategy || 'Initializing...'}
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          </div>
         </div>
 
-        {/* Market Overview (No Buy/Sell Buttons) */}
+        {/* InvestEase Simulation Info */}
         <div className="mb-8">
-          <h3 className="text-xl neon-cyan mb-4">📈 MARKET OVERVIEW</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {stocks.map((stock) => (
-              <motion.div
-                key={stock.symbol}
-                whileHover={{ scale: 1.02 }}
-                className="border-2 neon-border-cyan p-4 rounded-lg"
-                style={{backgroundColor: 'rgba(0, 255, 255, 0.1)'}}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="neon-cyan font-bold">{stock.symbol}</div>
-                    <div className="text-sm text-white">{stock.name}</div>
-                    <div className="text-xs text-gray-400">{stock.sector}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-white font-bold">${stock.price.toFixed(2)}</div>
-                    <div className={`text-sm ${stock.changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
-                    </div>
-                  </div>
+          <h3 className="text-xl neon-cyan mb-4">🏦 INVESTEASE SIMULATION DETAILS</h3>
+          <div className="border-4 neon-border-green p-6 rounded-lg" style={{backgroundColor: 'rgba(0, 255, 0, 0.1)'}}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-lg neon-blue mb-2">Simulation Method</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="text-white">• Independent RBC Stock Market Simulator</div>
+                  <div className="text-white">• AI-Driven Portfolio Management</div>
+                  <div className="text-white">• Strategy: {investEaseStrategy || 'Loading...'}</div>
+                  <div className="text-white">• Duration: {gameConfig.timeframe} days</div>
                 </div>
-              </motion.div>
-            ))}
+              </div>
+              <div>
+                <h4 className="text-lg neon-blue mb-2">How It Works</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="text-white">• Creates its own market conditions</div>
+                  <div className="text-white">• Applies InvestEase AI algorithms</div>
+                  <div className="text-white">• Generates realistic portfolio growth</div>
+                  <div className="text-white">• Independent of Human/AI trading</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -945,6 +1366,254 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
             </div>
           </div>
         </div>
+
+        {/* Next Phase Button */}
+        <div className="text-center mt-8">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleNextPhase}
+            className="px-8 py-4 bg-gradient-to-r from-yellow-600 to-orange-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            📊 View Results
+          </motion.button>
+        </div>
+      </div>
+    );
+  }
+
+  // Results Page
+  if (battlePhase === 'results') {
+    const humanValue = calculateTotalValue(humanPortfolio, humanCash);
+    const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
+    const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
+
+    // Calculate returns
+    const humanReturn = ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const autonomousReturn = ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+    const investEaseReturn = ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
+
+    // Determine winner by highest return percentage
+    let winner = 'human';
+    let winnerReturn = humanReturn;
+    if (autonomousReturn > winnerReturn) {
+      winner = 'autonomous';
+      winnerReturn = autonomousReturn;
+    }
+    if (investEaseReturn > winnerReturn) {
+      winner = 'investease';
+      winnerReturn = investEaseReturn;
+    }
+
+    const getWinnerIcon = (trader: string) => {
+      if (trader === winner) return '👑';
+      return trader === 'human' ? '👤' : trader === 'autonomous' ? '🤖' : '🏦';
+    };
+
+    const getWinnerColor = (trader: string) => {
+      if (trader === winner) return 'neon-yellow';
+      return trader === 'human' ? 'neon-blue' : trader === 'autonomous' ? 'neon-purple' : 'neon-green';
+    };
+
+    return (
+      <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl neon-pink mb-4">🏆 BATTLE RESULTS</h1>
+          <div className="text-2xl neon-yellow mb-2">
+            {winner === 'human' && '👤 HUMAN WINS!'}
+            {winner === 'autonomous' && '🤖 AUTONOMOUS AI WINS!'}
+            {winner === 'investease' && '🏦 INVESTEASE WINS!'}
+          </div>
+          <div className="text-lg text-white">
+            Highest Return: {winnerReturn >= 0 ? '+' : ''}{winnerReturn.toFixed(2)}%
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Human Card */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`border-4 ${winner === 'human' ? 'neon-border-yellow' : 'neon-border-blue'} p-6 rounded-lg cursor-pointer`}
+            style={{backgroundColor: winner === 'human' ? 'rgba(255, 249, 0, 0.2)' : 'rgba(0, 225, 255, 0.1)'}}
+            onClick={() => setSelectedTrader('human')}
+          >
+            <div className="text-center">
+              <h3 className={`text-2xl ${getWinnerColor('human')} mb-4`}>
+                {getWinnerIcon('human')} HUMAN
+              </h3>
+              <div className="text-3xl neon-yellow mb-2">${humanValue.toFixed(2)}</div>
+              <div className={`text-xl ${humanReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+                {humanReturn >= 0 ? '+' : ''}{humanReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
+            </div>
+          </motion.div>
+
+          {/* Autonomous AI Card */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`border-4 ${winner === 'autonomous' ? 'neon-border-yellow' : 'neon-border-purple'} p-6 rounded-lg cursor-pointer`}
+            style={{backgroundColor: winner === 'autonomous' ? 'rgba(255, 249, 0, 0.2)' : 'rgba(97, 0, 255, 0.1)'}}
+            onClick={() => setSelectedTrader('autonomous')}
+          >
+            <div className="text-center">
+              <h3 className={`text-2xl ${getWinnerColor('autonomous')} mb-4`}>
+                {getWinnerIcon('autonomous')} AUTONOMOUS AI
+              </h3>
+              <div className="text-3xl neon-yellow mb-2">${autonomousValue.toFixed(2)}</div>
+              <div className={`text-xl ${autonomousReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+                {autonomousReturn >= 0 ? '+' : ''}{autonomousReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
+            </div>
+          </motion.div>
+
+          {/* InvestEase Card */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`border-4 ${winner === 'investease' ? 'neon-border-yellow' : 'neon-border-green'} p-6 rounded-lg cursor-pointer`}
+            style={{backgroundColor: winner === 'investease' ? 'rgba(255, 249, 0, 0.2)' : 'rgba(0, 255, 0, 0.1)'}}
+            onClick={() => setSelectedTrader('investease')}
+          >
+            <div className="text-center">
+              <h3 className={`text-2xl ${getWinnerColor('investease')} mb-4`}>
+                {getWinnerIcon('investease')} INVESTEASE
+              </h3>
+              <div className="text-3xl neon-yellow mb-2">${investEaseValue.toFixed(2)}</div>
+              <div className={`text-xl ${investEaseReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+                {investEaseReturn >= 0 ? '+' : ''}{investEaseReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Final Button */}
+        <div className="text-center mt-8">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleViewResults}
+            className="px-8 py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            🎉 Complete Battle
+          </motion.button>
+        </div>
+
+        {/* Trend Graph Modal */}
+        {selectedTrader && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-gray-900 border-4 neon-border-blue p-8 rounded-lg shadow-lg w-full max-w-4xl relative text-white"
+            >
+              <button
+                onClick={() => setSelectedTrader(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl"
+              >
+                &times;
+              </button>
+              
+              <h2 className="text-3xl neon-cyan mb-4 text-center">
+                {selectedTrader === 'human' && '👤 HUMAN TRADER'}
+                {selectedTrader === 'autonomous' && '🤖 AUTONOMOUS AI'}
+                {selectedTrader === 'investease' && '🏦 INVESTEASE'}
+                {' '}MONEY TREND
+              </h2>
+              
+              {/* Debug info */}
+              <div className="text-sm text-gray-400 mb-4 text-center">
+                Data points: {(selectedTrader === 'human' ? humanTrends : 
+                  selectedTrader === 'autonomous' ? autonomousTrends : 
+                  investEaseTrends).length}
+                {selectedTrader === 'investease' && (
+                  <div className="mt-2">
+                    <div>Strategy: {investEaseStrategy}</div>
+                    <div>Simulation Method: {investEaseTrends.length > 0 ? 'RBC InvestEase API' : 'Fallback Growth'}</div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h3 className="text-xl neon-blue mb-2">Performance Summary</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-white">Starting Value:</span>
+                      <span className="text-white">${gameConfig.initialCash.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white">Final Value:</span>
+                      <span className="text-cyan-400">
+                        ${selectedTrader === 'human' ? humanValue.toFixed(2) : 
+                          selectedTrader === 'autonomous' ? autonomousValue.toFixed(2) : 
+                          investEaseValue.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white">Total Return:</span>
+                      <span className={`${selectedTrader === 'human' ? humanReturn : 
+                        selectedTrader === 'autonomous' ? autonomousReturn : 
+                        investEaseReturn} >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {selectedTrader === 'human' ? (humanReturn >= 0 ? '+' : '') + humanReturn.toFixed(2) + '%' : 
+                         selectedTrader === 'autonomous' ? (autonomousReturn >= 0 ? '+' : '') + autonomousReturn.toFixed(2) + '%' : 
+                         (investEaseReturn >= 0 ? '+' : '') + investEaseReturn.toFixed(2) + '%'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl neon-blue mb-2">Trend Data</h3>
+                  <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                    <table className="min-w-full bg-gray-800 rounded-lg">
+                      <thead>
+                        <tr>
+                          <th className="py-2 px-4 border-b border-gray-700 text-left neon-blue">Day</th>
+                          <th className="py-2 px-4 border-b border-gray-700 text-left neon-blue">Value</th>
+                          <th className="py-2 px-4 border-b border-gray-700 text-left neon-blue">Change (%)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedTrader === 'human' ? humanTrends : 
+                          selectedTrader === 'autonomous' ? autonomousTrends : 
+                          investEaseTrends).length > 0 ? (
+                          (selectedTrader === 'human' ? humanTrends : 
+                            selectedTrader === 'autonomous' ? autonomousTrends : 
+                            investEaseTrends).map((point, index) => {
+                            const prevValue = index > 0 ? 
+                              (selectedTrader === 'human' ? humanTrends[index - 1].value : 
+                               selectedTrader === 'autonomous' ? autonomousTrends[index - 1].value : 
+                               investEaseTrends[index - 1].value) : gameConfig.initialCash;
+                            const changePercent = ((point.value - prevValue) / prevValue) * 100;
+                            return (
+                              <tr key={point.day} className="hover:bg-gray-700">
+                                <td className="py-2 px-4 border-b border-gray-700">{point.day}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">${point.value.toFixed(2)}</td>
+                                <td className={`py-2 px-4 border-b border-gray-700 ${changePercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(2)}%
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className="py-4 px-4 text-center text-gray-400">
+                              No trend data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   }
