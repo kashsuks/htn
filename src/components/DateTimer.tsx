@@ -37,23 +37,7 @@ export function DateTimer({ timeLeft, totalTime }: DateTimerProps) {
         transition={{ duration: 2, repeat: Infinity }}
         className="text-4xl text-green-400 mb-2"
       >
-        📅 {formatDate(currentDate)}
       </motion.div>
-      
-      <div className="text-green-300 text-lg mb-3">
-        DAY {currentDay + 1} OF {totalDays} | {timeLeft}s REMAINING
-      </div>
-      
-      {/* Progress bar */}
-      <div className="w-full max-w-md mx-auto h-4 bg-gray-800 border-2 border-green-400 relative overflow-hidden">
-        <motion.div
-          className="h-full bg-gradient-to-r from-green-600 to-green-400"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5 }}
-        />
-        <div className="absolute inset-0 scanlines" />
-      </div>
     </div>
   );
 }

@@ -1,24 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { SimpleBattleSystem } from './SimpleBattleSystem';
+import { ThreeWayBattleSystem } from './ThreeWayBattleSystem';
 import { GameConfig } from './GameSetup';
-import { useAuthContext } from '../contexts/AuthContext';
 
-interface RoundResult {
-  round: number;
-  playerScore: number;
-  aiScore: number;
-  winner: 'player' | 'ai' | 'tie';
+interface BattleResults {
+  human: {
+    finalValue: number;
+    totalReturn: number;
+  };
+  autonomousAI: {
+    finalValue: number;
+    totalReturn: number;
+  };
+  investEase: {
+    finalValue: number;
+    totalReturn: number;
+    strategy: string;
+  };
+  winner: 'human' | 'autonomousAI' | 'investease';
 }
 
 interface BattleSystemProps {
   gameConfig: GameConfig;
-  onBattleComplete: (results: RoundResult[]) => void;
+  onBattleComplete: (results: BattleResults) => void;
 }
 
 export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps) {
   return (
-    <SimpleBattleSystem
+    <ThreeWayBattleSystem
       gameConfig={gameConfig}
       onBattleComplete={onBattleComplete}
     />

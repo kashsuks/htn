@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { PortfolioView } from './PortfolioView';
+import { StockHistoryModal } from './StockHistoryModal';
 
 interface GameConfig {
   goal: string;
@@ -16,6 +17,12 @@ interface Stock {
   change: number;
   changePercent: number;
   sector: string;
+}
+
+interface StockHistoryPoint {
+  day: number;
+  price: number;
+  timestamp: number;
 }
 
 interface SimpleTradingGameProps {
@@ -39,8 +46,10 @@ export function SimpleTradingGame({
   const [cash, setCash] = useState(gameConfig.initialCash);
   const [timeLeft, setTimeLeft] = useState(timeFrame * 5); // 5 seconds per day
   const [currentDay, setCurrentDay] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const [stockHistory, setStockHistory] = useState<{[key: string]: StockHistoryPoint[]}>({});
+  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
 
   // Stock definitions
   const STOCK_DEFINITIONS: Omit<Stock, 'price' | 'change' | 'changePercent'>[] = [
@@ -58,20 +67,31 @@ export function SimpleTradingGame({
   useEffect(() => {
     const initialStocks: Stock[] = STOCK_DEFINITIONS.map(stock => {
       const basePrice = 50 + Math.random() * 200; // $50-$250 range
-      return {
+          return {
         ...stock,
         price: basePrice,
         change: 0,
         changePercent: 0
-      };
-    });
+          };
+        });
     setStocks(initialStocks);
+    
+    // Initialize stock history with initial prices
+    const initialHistory: {[key: string]: StockHistoryPoint[]} = {};
+    initialStocks.forEach(stock => {
+      initialHistory[stock.symbol] = [{
+        day: 1,
+        price: stock.price,
+        timestamp: Date.now()
+      }];
+    });
+    setStockHistory(initialHistory);
   }, []);
 
   // Update stock prices every 5 seconds (daily)
   useEffect(() => {
     if (gameComplete) return;
-
+    
     const interval = setInterval(() => {
       setStocks(prevStocks => {
         const updatedStocks = prevStocks.map(stock => {
@@ -88,6 +108,22 @@ export function SimpleTradingGame({
             change: change,
             changePercent: changePercent
           };
+        });
+        
+        // Update stock history
+        setStockHistory(prevHistory => {
+          const newHistory = { ...prevHistory };
+          updatedStocks.forEach(stock => {
+            if (!newHistory[stock.symbol]) {
+              newHistory[stock.symbol] = [];
+            }
+            newHistory[stock.symbol].push({
+              day: currentDay + 1,
+              price: stock.price,
+              timestamp: Date.now()
+            });
+          });
+          return newHistory;
         });
         
         // Update day counter
@@ -107,7 +143,7 @@ export function SimpleTradingGame({
   // Timer countdown
   useEffect(() => {
     if (gameComplete) return;
-
+    
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -117,7 +153,7 @@ export function SimpleTradingGame({
         return prev - 1;
       });
     }, 1000);
-
+    
     return () => clearInterval(interval);
   }, [gameComplete]);
 
@@ -132,7 +168,7 @@ export function SimpleTradingGame({
 
   const calculateTotalValue = useCallback(() => {
     const stockValue = Object.entries(portfolio).reduce((total, [symbol, shares]) => {
-      const stock = stocks.find(s => s.symbol === symbol);
+                const stock = stocks.find(s => s.symbol === symbol);
       return total + (stock ? stock.price * shares : 0);
     }, 0);
     return cash + stockValue;
@@ -176,7 +212,7 @@ export function SimpleTradingGame({
   }
 
   return (
-    <div className="min-h-screen text-white p-6" style={{backgroundColor: '#061625'}}>
+    <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
       {/* Header */}
       <div className="text-center mb-8">
         <motion.div
@@ -187,12 +223,8 @@ export function SimpleTradingGame({
           {isAITurn ? '🤖 AI TRADER' : '👤 HUMAN TRADER'}
         </motion.div>
         
-        <div className="text-2xl neon-cyan mb-2">
-          📅 DAY {currentDay} of {timeFrame}
-        </div>
-        
         <div className="text-lg text-white mb-4">
-          Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+          DAY {currentDay} OF {timeFrame} | {timeLeft}S REMAINING
         </div>
       </div>
 
@@ -204,10 +236,9 @@ export function SimpleTradingGame({
         totalValue={totalValue}
         timeLeft={timeLeft}
         totalTime={timeFrame * 5}
-        currentDay={currentDay}
-        totalDays={timeFrame}
         startValue={gameConfig.initialCash}
         isAITurn={isAITurn}
+        onTrade={() => {}}
       />
 
       {/* Stock Market */}
@@ -218,14 +249,17 @@ export function SimpleTradingGame({
             <motion.div
               key={stock.symbol}
               whileHover={{ scale: 1.02 }}
-              className="border-2 neon-border-cyan p-4 rounded-lg"
+              whileTap={{ scale: 0.98 }}
+              className="border-2 neon-border-cyan p-4 rounded-lg cursor-pointer"
               style={{backgroundColor: 'rgba(0, 255, 255, 0.1)'}}
+              onClick={() => setSelectedStock(stock)}
             >
               <div className="flex justify-between items-center">
                 <div>
                   <div className="neon-cyan font-bold">{stock.symbol}</div>
                   <div className="text-sm text-white">{stock.name}</div>
                   <div className="text-xs text-gray-400">{stock.sector}</div>
+                  <div className="text-xs text-cyan-400 mt-1">📊 Click for chart</div>
                 </div>
                 <div className="text-right">
                   <div className="text-white font-bold">${stock.price.toFixed(2)}</div>
@@ -234,7 +268,7 @@ export function SimpleTradingGame({
                   </div>
                 </div>
               </div>
-              
+
               {!isAITurn && (
                 <div className="flex gap-2 mt-3">
                   <button
@@ -251,7 +285,7 @@ export function SimpleTradingGame({
                   >
                     Sell 1
                   </button>
-                </div>
+              </div>
               )}
               
               {portfolio[stock.symbol] > 0 && (
@@ -261,8 +295,8 @@ export function SimpleTradingGame({
               )}
             </motion.div>
           ))}
-        </div>
-      </div>
+                </div>
+              </div>
 
       {/* Game Info */}
       <div className="border-4 neon-border-yellow p-6 rounded-lg" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}>
@@ -271,21 +305,29 @@ export function SimpleTradingGame({
           <div>
             <strong className="neon-blue">GOAL:</strong><br />
             <span className="text-white">{gameConfig.goal}</span>
-          </div>
+              </div>
           <div>
             <strong className="neon-pink">TARGET:</strong><br />
             <span className="text-white">${gameConfig.cost.toLocaleString()}</span>
-          </div>
+              </div>
           <div>
             <strong className="neon-yellow">ROUND:</strong><br />
             <span className="text-white">{roundNumber}</span>
-          </div>
+            </div>
           <div>
             <strong className="neon-green">CURRENT VALUE:</strong><br />
             <span className="text-white">${totalValue.toFixed(2)}</span>
           </div>
         </div>
       </div>
+
+      {/* Stock History Modal */}
+      <StockHistoryModal
+        stock={selectedStock}
+        history={selectedStock ? (stockHistory[selectedStock.symbol] || []) : []}
+        isOpen={selectedStock !== null}
+        onClose={() => setSelectedStock(null)}
+      />
     </div>
   );
 }

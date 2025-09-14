@@ -14,11 +14,21 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 
 type GamePhase = 'start' | 'setup' | 'battle' | 'complete';
 
-interface RoundResult {
-  round: number;
-  playerScore: number;
-  aiScore: number;
-  winner: 'player' | 'ai' | 'tie';
+interface BattleResults {
+  human: {
+    finalValue: number;
+    totalReturn: number;
+  };
+  autonomousAI: {
+    finalValue: number;
+    totalReturn: number;
+  };
+  investEase: {
+    finalValue: number;
+    totalReturn: number;
+    strategy: string;
+  };
+  winner: 'human' | 'autonomousAI' | 'investEase';
 }
 
 // Navigation Header Component
@@ -75,7 +85,7 @@ const NavigationHeader: React.FC = () => {
 const GameComponent: React.FC = () => {
   const [gamePhase, setGamePhase] = useState<GamePhase>('start');
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
-  const [battleResults, setBattleResults] = useState<RoundResult[]>([]);
+  const [battleResults, setBattleResults] = useState<BattleResults | null>(null);
   const { isAuthenticated } = useAuth0();
   const navigate = useNavigate();
 
@@ -97,7 +107,7 @@ const GameComponent: React.FC = () => {
     setGamePhase('battle');
   };
 
-  const handleBattleComplete = (results: RoundResult[]) => {
+  const handleBattleComplete = (results: BattleResults) => {
     setBattleResults(results);
     setGamePhase('complete');
   };
@@ -105,7 +115,7 @@ const GameComponent: React.FC = () => {
   const restartGame = () => {
     setGamePhase('start');
     setGameConfig(null);
-    setBattleResults([]);
+    setBattleResults(null);
     gameApi.clearAuth();
   };
 
@@ -147,7 +157,13 @@ const GameComponent: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">⚡</span>
                   <div>
-                    <strong className="neon-blue">REAL-TIME:</strong> 1 second = 0.5 days in game time
+                    <strong className="neon-blue">REAL-TIME:</strong> 5 seconds = 1 day in game time
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">📈</span>
+                  <div>
+                    <strong className="neon-blue">WATCH:</strong> Stock prices update automatically every 5 seconds
                   </div>
                 </div>
               </div>
@@ -155,13 +171,19 @@ const GameComponent: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🤖</span>
                   <div>
-                    <strong className="neon-yellow">BATTLE:</strong> Best of 3 rounds vs RBC InvestEase AI
+                    <strong className="neon-yellow">BATTLE:</strong> Best of 3 rounds vs AI opponent
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🎯</span>
+                  <div>
+                    <strong className="neon-yellow">GOAL:</strong> Build the highest portfolio value in 7 days
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🏆</span>
                   <div>
-                    <strong className="neon-yellow">VICTORY:</strong> Reach your goal faster than the AI!
+                    <strong className="neon-yellow">VICTORY:</strong> Beat the AI's final portfolio value!
                   </div>
                 </div>
               </div>
@@ -201,10 +223,21 @@ const GameComponent: React.FC = () => {
     );
   }
 
-  if (gamePhase === 'complete') {
-    const playerWins = battleResults.filter(r => r.winner === 'player').length;
-    const aiWins = battleResults.filter(r => r.winner === 'ai').length;
-    const finalWinner = playerWins > aiWins ? 'player' : aiWins > playerWins ? 'ai' : 'tie';
+  if (gamePhase === 'complete' && battleResults) {
+    const getWinnerDisplay = (winner: string) => {
+      switch (winner) {
+        case 'human':
+          return { emoji: '👤', text: 'HUMAN WINS!', color: 'text-green-400' };
+        case 'autonomousAI':
+          return { emoji: '🤖', text: 'AUTONOMOUS AI WINS!', color: 'text-purple-400' };
+        case 'investEase':
+          return { emoji: '🏦', text: 'INVESTEASE WINS!', color: 'text-yellow-400' };
+        default:
+          return { emoji: '🤝', text: 'DRAW!', color: 'text-gray-400' };
+      }
+    };
+
+    const winnerDisplay = getWinnerDisplay(battleResults.winner);
     
     return (
       <div className="min-h-screen flex items-center justify-center text-white scanlines pixel-font pt-20" style={{backgroundColor: '#061625'}}>
@@ -212,19 +245,66 @@ const GameComponent: React.FC = () => {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-center max-w-4xl mx-auto p-8"
+          className="text-center max-w-6xl mx-auto p-8"
         >
-          <div className={`text-8xl mb-8 ${
-            finalWinner === 'player' ? 'text-green-400' : 
-            finalWinner === 'ai' ? 'text-red-400' : 'text-yellow-400'
-          }`}>
-            {finalWinner === 'player' ? '🏆 VICTORY!' : 
-             finalWinner === 'ai' ? '💀 DEFEAT!' : '🤝 DRAW!'}
-          </div>
-          
-          <div className="text-3xl mb-8 neon-blue">
-            FINAL SCORE: {playerWins} - {aiWins}
-          </div>
+          {/* Winner Display */}
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mb-12"
+          >
+            <div className="text-6xl mb-4">
+              {winnerDisplay.emoji}
+            </div>
+            <div className={`text-4xl font-bold mb-4 ${winnerDisplay.color}`}>
+              {winnerDisplay.text}
+            </div>
+            <div className="text-xl neon-blue">
+              BATTLE COMPLETE
+            </div>
+          </motion.div>
+
+          {/* Results Grid */}
+          <motion.div
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          >
+            {/* Human Results */}
+            <div className={`border-4 p-6 rounded-lg ${battleResults.winner === 'human' ? 'neon-border-green' : 'neon-border-gray'}`} 
+                 style={{backgroundColor: battleResults.winner === 'human' ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 255, 0, 0.1)'}}>
+              <div className="text-2xl mb-2">👤 HUMAN TRADER</div>
+              <div className="text-3xl font-bold text-white mb-2">${battleResults.human.finalValue.toFixed(2)}</div>
+              <div className={`text-lg ${battleResults.human.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {battleResults.human.totalReturn >= 0 ? '+' : ''}{battleResults.human.totalReturn.toFixed(2)}%
+              </div>
+            </div>
+
+            {/* Autonomous AI Results */}
+            <div className={`border-4 p-6 rounded-lg ${battleResults.winner === 'autonomousAI' ? 'neon-border-purple' : 'neon-border-gray'}`} 
+                 style={{backgroundColor: battleResults.winner === 'autonomousAI' ? 'rgba(97, 0, 255, 0.2)' : 'rgba(97, 0, 255, 0.1)'}}>
+              <div className="text-2xl mb-2">🤖 AUTONOMOUS AI</div>
+              <div className="text-3xl font-bold text-white mb-2">${battleResults.autonomousAI.finalValue.toFixed(2)}</div>
+              <div className={`text-lg ${battleResults.autonomousAI.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {battleResults.autonomousAI.totalReturn >= 0 ? '+' : ''}{battleResults.autonomousAI.totalReturn.toFixed(2)}%
+              </div>
+            </div>
+
+            {/* InvestEase Results */}
+            <div className={`border-4 p-6 rounded-lg ${battleResults.winner === 'investEase' ? 'neon-border-yellow' : 'neon-border-gray'}`} 
+                 style={{backgroundColor: battleResults.winner === 'investEase' ? 'rgba(255, 255, 0, 0.2)' : 'rgba(255, 255, 0, 0.1)'}}>
+              <div className="text-2xl mb-2">🏦 INVESTEASE AI</div>
+              <div className="text-3xl font-bold text-white mb-2">${battleResults.investEase.finalValue.toFixed(2)}</div>
+              <div className={`text-lg ${battleResults.investEase.totalReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {battleResults.investEase.totalReturn >= 0 ? '+' : ''}{battleResults.investEase.totalReturn.toFixed(2)}%
+              </div>
+              <div className="text-sm text-white mt-2">
+                Strategy: {battleResults.investEase.strategy}
+              </div>
+            </div>
+          </motion.div>
 
           <Button
             onClick={restartGame}

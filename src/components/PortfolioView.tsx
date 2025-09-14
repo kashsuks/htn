@@ -1,5 +1,4 @@
 import { motion } from 'motion/react';
-import { DateTimer } from './DateTimer';
 import { PortfolioGraph } from './PortfolioGraph';
 
 interface Stock {
@@ -38,18 +37,7 @@ export function PortfolioView({
   const gainLossPercent = ((totalValue - startValue) / startValue) * 100;
 
   return (
-    <div className="min-h-screen text-white p-6 flex flex-col scanlines pixel-font" style={{backgroundColor: '#061625'}}>
-      {/* Header */}
-      <div className="text-center mb-8">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-4xl neon-pink mb-4"
-        >
-          {isAITurn ? '🤖 AI TRADER' : '👤 PLAYER'}
-        </motion.div>
-        <DateTimer timeLeft={timeLeft} totalTime={totalTime} />
-      </div>
+    <div className="text-white p-6 flex flex-col scanlines pixel-font" style={{backgroundColor: '#061625'}}>
 
       {/* Total Portfolio Value */}
       <motion.div
@@ -132,32 +120,6 @@ export function PortfolioView({
             </div>
           )}
 
-          {/* Stock Market Display - Show for both player and AI */}
-          <div className="mb-6">
-            <div className="text-lg neon-green mb-4">📈 MARKET PRICES</div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {stocks.map((stock) => (
-                <motion.div
-                  key={stock.symbol}
-                  whileHover={{ scale: 1.02 }}
-                  className="border-2 neon-border-green p-4" style={{backgroundColor: 'rgba(0, 255, 0, 0.1)'}}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="neon-green">{stock.symbol}</div>
-                      <div className="text-sm text-white">{stock.name}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="neon-yellow">${stock.price.toFixed(2)}</div>
-                      <div className={`text-sm ${stock.change >= 0 ? 'neon-blue' : 'neon-red'}`}>
-                        {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
 
           {portfolioEntries.length === 0 && !isAITurn && (
             <div className="text-center text-white mb-6 border-2 neon-border-purple p-6" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>

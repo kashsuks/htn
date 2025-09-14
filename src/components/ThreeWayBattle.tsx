@@ -355,10 +355,6 @@ export function ThreeWayBattle({ timeFrame, initialCash, onComplete }: ThreeWayB
           🏆 THREE-WAY BATTLE
         </motion.div>
         
-        <div className="text-2xl neon-cyan mb-2">
-          📅 DAY {currentDay} of {timeFrame}
-        </div>
-        
         <div className="text-lg text-white mb-4">
           Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
         </div>
