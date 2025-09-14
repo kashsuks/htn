@@ -52,6 +52,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   const [investEaseCash, setInvestEaseCash] = useState(gameConfig.initialCash);
   const [investEaseValue, setInvestEaseValue] = useState(gameConfig.initialCash);
   const [investEaseStrategy, setInvestEaseStrategy] = useState('');
+  const [investEaseComplete, setInvestEaseComplete] = useState(false);
   const [timeLeft, setTimeLeft] = useState(gameConfig.timeframe * 5); // 5 seconds per day
   const [currentDay, setCurrentDay] = useState(1);
   const [gameComplete, setGameComplete] = useState(false);
@@ -157,14 +158,14 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     return () => clearInterval(interval);
   }, [gameComplete, battlePhase, currentDay, gameConfig.timeframe]);
 
-  // Timer countdown - ONLY for Human and Autonomous AI
+  // Timer countdown - ONLY for Human and Autonomous AI (NO AUTO-COMPLETION)
   useEffect(() => {
     if (gameComplete || !['human', 'autonomous'].includes(battlePhase)) return;
 
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          setGameComplete(true);
+          // Don't auto-complete, just stop at 0
           return 0;
         }
         return prev - 1;
@@ -174,31 +175,9 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     return () => clearInterval(interval);
   }, [gameComplete, battlePhase]);
 
-  // Complete turn when time runs out
-  useEffect(() => {
-    if (gameComplete && ['human', 'autonomous', 'investease'].includes(battlePhase)) {
-      console.log(`🏁 ${battlePhase} turn complete! Moving to next...`);
-      handleTurnComplete();
-    }
-  }, [gameComplete, battlePhase]);
+  // NO AUTOMATIC TURN COMPLETION - Manual buttons only
 
-  const handleTurnComplete = useCallback(() => {
-    // Update trends at the end of each phase
-    updateTrends();
-    
-    if (battlePhase === 'human') {
-      console.log('👤 Human turn complete, starting Autonomous AI...');
-      setBattlePhase('autonomous');
-      resetForNewTurn();
-    } else if (battlePhase === 'autonomous') {
-      console.log('🤖 Autonomous AI turn complete, starting InvestEase...');
-      setBattlePhase('investease');
-      resetForNewTurn();
-    } else if (battlePhase === 'investease') {
-      console.log('🏦 InvestEase turn complete, calculating results...');
-      calculateResults();
-    }
-  }, [battlePhase]);
+  // Manual turn completion removed - users click buttons to proceed
 
   const handleNextPhase = () => {
     if (battlePhase === 'human') {
@@ -257,6 +236,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     setTimeLeft(gameConfig.timeframe * 5);
     setCurrentDay(1);
     setGameComplete(false);
+    setInvestEaseComplete(false);
   };
 
   // Autonomous AI trading logic
@@ -355,6 +335,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               setInvestEaseStrategy(result.strategy || 'RBC InvestEase AI Portfolio Management');
               setInvestEasePortfolio({});
               setInvestEaseCash(finalValue);
+              setInvestEaseComplete(true);
               
               // Process growth_trend data for InvestEase trends
               if (result.growth_trend && Array.isArray(result.growth_trend)) {
@@ -379,6 +360,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
           setInvestEasePortfolio({});
           setInvestEaseCash(newValue);
+          setInvestEaseComplete(true);
           
           // Generate realistic InvestEase-style trend data with market volatility
           const fallbackTrendData = [];
@@ -426,70 +408,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
     runInvestEaseSimulation();
     
-    // InvestEase turn completes after showing simulation process
-    setTimeout(() => {
-      console.log('🏦 InvestEase turn complete, calculating results...');
-      
-      // Update final trends before calculating results
-      updateTrends();
-      
-      // Calculate results directly here instead of calling the function
-      const humanValue = calculateTotalValue(humanPortfolio, humanCash);
-      const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
-      const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
-
-      // Calculate returns for proper winner determination
-      const humanReturn = ((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
-      const autonomousReturn = ((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
-      const investEaseReturn = ((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100;
-
-      let winner: 'human' | 'autonomousAI' | 'investease' = 'human';
-      let winnerReturn = humanReturn;
-      if (autonomousReturn > winnerReturn) {
-        winner = 'autonomousAI';
-        winnerReturn = autonomousReturn;
-      }
-      if (investEaseReturn > winnerReturn) {
-        winner = 'investease';
-        winnerReturn = investEaseReturn;
-      }
-
-      const results: BattleResults = {
-        human: {
-          finalValue: humanValue,
-          totalReturn: humanReturn
-        },
-        autonomousAI: {
-          finalValue: autonomousValue,
-          totalReturn: autonomousReturn
-        },
-        investEase: {
-          finalValue: investEaseValue,
-          totalReturn: investEaseReturn,
-          strategy: investEaseStrategy
-        },
-        winner
-      };
-
-      setBattleResults(results);
-      setBattlePhase('results');
-      
-      // Update game stats
-      updateGameStats({
-        score: humanValue,
-        won: winner === 'human',
-        gameType: 'three-way-battle',
-        rounds: 1,
-        aiScore: autonomousValue,
-        investEaseScore: investEaseValue,
-        humanReturn: results.human.totalReturn,
-        aiReturn: results.autonomousAI.totalReturn,
-        investEaseReturn: results.investEase.totalReturn,
-        timestamp: new Date().toISOString()
-      });
-
-      // Don't automatically call onBattleComplete - let user click button
-    }, 5000); // Give 5 seconds to show the simulation process
+    // NO AUTOMATIC COMPLETION - User must click button to proceed
   }, [battlePhase, gameConfig.timeframe, gameConfig.initialCash]);
 
   const calculateResults = useCallback(() => {
@@ -1286,8 +1205,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
         {/* InvestEase Status */}
         <div className="mb-8 text-center">
-          <div className="text-2xl neon-green mb-4">🏦 INVESTEASE IS SIMULATING...</div>
-          <div className="text-lg text-white mb-4">Running RBC InvestEase AI Portfolio Management</div>
+          <div className="text-2xl neon-green mb-4">🏦 INVESTEASE SIMULATION</div>
+          <div className="text-lg text-white mb-4">RBC InvestEase AI Portfolio Management</div>
           <div className="text-sm text-gray-400 mb-4">
             InvestEase uses its own independent stock market simulator<br/>
             and applies AI-driven portfolio management strategies
@@ -1295,9 +1214,13 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           <div className="text-lg neon-cyan mb-4">
             Status: {investEaseStrategy || 'Initializing...'}
           </div>
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-          </div>
+          {investEaseComplete ? (
+            <div className="text-lg neon-green mb-4">✅ Simulation Complete!</div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+            </div>
+          )}
         </div>
 
         {/* InvestEase Simulation Info */}

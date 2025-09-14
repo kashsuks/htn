@@ -170,7 +170,7 @@ export function SimpleTradingGame({
     const stockValue = Object.entries(portfolio).reduce((total, [symbol, shares]) => {
                 const stock = stocks.find(s => s.symbol === symbol);
       return total + (stock ? stock.price * shares : 0);
-    }, 0);
+              }, 0);
     return cash + stockValue;
   }, [portfolio, stocks, cash]);
 
@@ -191,7 +191,7 @@ export function SimpleTradingGame({
       const revenue = stock.price * shares;
       setCash(prev => prev + revenue);
       setPortfolio(prev => ({
-        ...prev,
+          ...prev,
         [stock.symbol]: prev[stock.symbol] - shares
       }));
       console.log(`💸 Sold ${shares} ${stock.symbol} @ $${stock.price.toFixed(2)}`);
@@ -278,16 +278,16 @@ export function SimpleTradingGame({
                   >
                     Buy 1
                   </button>
-                  <button
+          <button
                     onClick={() => sellStock(stock, 1)}
                     disabled={(portfolio[stock.symbol] || 0) < 1}
                     className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50"
                   >
                     Sell 1
-                  </button>
-              </div>
-              )}
-              
+          </button>
+        </div>
+      )}
+
               {portfolio[stock.symbol] > 0 && (
                 <div className="text-xs text-white mt-2">
                   Own: {portfolio[stock.symbol]} shares
@@ -295,8 +295,8 @@ export function SimpleTradingGame({
               )}
             </motion.div>
           ))}
-                </div>
               </div>
+            </div>
 
       {/* Game Info */}
       <div className="border-4 neon-border-yellow p-6 rounded-lg" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}>
@@ -305,21 +305,21 @@ export function SimpleTradingGame({
           <div>
             <strong className="neon-blue">GOAL:</strong><br />
             <span className="text-white">{gameConfig.goal}</span>
-              </div>
+                  </div>
           <div>
             <strong className="neon-pink">TARGET:</strong><br />
             <span className="text-white">${gameConfig.cost.toLocaleString()}</span>
-              </div>
+                </div>
           <div>
             <strong className="neon-yellow">ROUND:</strong><br />
             <span className="text-white">{roundNumber}</span>
-            </div>
+                  </div>
           <div>
             <strong className="neon-green">CURRENT VALUE:</strong><br />
             <span className="text-white">${totalValue.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
+                  </div>
+                </div>
+              </div>
 
       {/* Stock History Modal */}
       <StockHistoryModal
