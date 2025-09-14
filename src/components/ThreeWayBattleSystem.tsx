@@ -1208,7 +1208,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
                 <div className="flex justify-between">
                   <span className="text-white">Gain/Loss:</span>
                   <span className={`${((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
+                    {((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{(((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100).toFixed(2)}%
                   </span>
                 </div>
               </div>
@@ -1278,7 +1278,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
             <div className="text-center">
               <div className="neon-green font-bold">TOTAL RETURN</div>
               <div className={`${((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
+                {((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{(((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100).toFixed(2)}%
               </div>
             </div>
           </div>
