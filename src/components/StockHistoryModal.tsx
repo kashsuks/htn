@@ -48,11 +48,10 @@ export function StockHistoryModal({ stock, history, isOpen, onClose }: StockHist
     
     return `M ${points.join(' L ')}`;
   };
-
-  // Calculate total return
+  
   const firstPrice = history[0]?.price || stock.price;
   const lastPrice = history[history.length - 1]?.price || stock.price;
-  const totalReturn = ((lastPrice - firstPrice) / firstPrice) * 100;
+  const totalReturn = Math.round(((lastPrice - firstPrice) / firstPrice) * 100);
 
   return (
     <motion.div
