@@ -94,15 +94,58 @@ export function RBCTradingGame({ gameConfig, isAITurn, onComplete, roundNumber }
         setPortfolio(newPortfolio);
         setCurrentValue(newPortfolio.current_value);
 
-        // Initialize chart data
-        const initialData: StockData[] = [];
-        for (let i = 0; i < 20; i++) {
-          initialData.push({
-            time: `${i}s`,
-            price: selectedStock.price + (Math.random() - 0.5) * 10
-          });
+        // Initialize rbcApi with token
+        const token = localStorage.getItem('game_token');
+        if (token) {
+          rbcApi.initialize(token, 'stock-fighter-game');
         }
-        setChartData(initialData);
+
+        // Get RBC-based stock prices from simulation
+        console.log('🔮 Getting RBC simulation data for stock prices...');
+        try {
+          const stockData = await rbcApi.getRBCStockPrices(newClient.id, 1);
+          console.log('📊 RBC stock data received:', stockData);
+          
+          if (stockData.stocks && Array.isArray(stockData.stocks)) {
+            setStocks(stockData.stocks);
+            setSelectedStock(stockData.stocks[0] || MOCK_STOCKS[0]);
+            
+            // Initialize chart data with RBC price history
+            if (stockData.stockPriceData && stockData.stockPriceData[stockData.stocks[0]?.symbol]?.priceHistory) {
+              const priceHistory = stockData.stockPriceData[stockData.stocks[0].symbol].priceHistory;
+              const chartData = priceHistory.slice(-20).map((point, index) => ({
+                time: `${index}s`,
+                price: point.price
+              }));
+              setChartData(chartData);
+            } else {
+              // Fallback to mock data
+              const initialData: StockData[] = [];
+              for (let i = 0; i < 20; i++) {
+                initialData.push({
+                  time: `${i}s`,
+                  price: (stockData.stocks[0]?.price || 150) + (Math.random() - 0.5) * 10
+                });
+              }
+              setChartData(initialData);
+            }
+          } else {
+            throw new Error('No stock data received from RBC API');
+          }
+        } catch (rbcError) {
+          console.warn('Failed to get RBC stock data, using mock data:', rbcError);
+          setStocks(MOCK_STOCKS);
+          setSelectedStock(MOCK_STOCKS[0]);
+          
+          const initialData: StockData[] = [];
+          for (let i = 0; i < 20; i++) {
+            initialData.push({
+              time: `${i}s`,
+              price: MOCK_STOCKS[0].price + (Math.random() - 0.5) * 10
+            });
+          }
+          setChartData(initialData);
+        }
 
       } catch (err) {
         console.error('Game initialization error:', err);
@@ -121,43 +164,113 @@ export function RBCTradingGame({ gameConfig, isAITurn, onComplete, roundNumber }
     };
 
     initializeGame();
-  }, [gameConfig, isAITurn, roundNumber, selectedStock.price]);
+  }, [gameConfig, isAITurn, roundNumber]);
 
-  // Update stock prices and chart
+  // Update stock prices and chart based on RBC simulation data
   useEffect(() => {
     if (timeLeft <= 0 || gameComplete || !portfolio) return;
     
-    console.log('📈 Starting stock price updates', { timeLeft, gameComplete, portfolio: !!portfolio });
+    console.log('📈 Starting RBC-based stock price updates', { timeLeft, gameComplete, portfolio: !!portfolio });
     
-    const interval = setInterval(() => {
-      setStocks(prevStocks => {
-        const updatedStocks = prevStocks.map(stock => {
-          const change = (Math.random() - 0.5) * 5;
-          const newPrice = Math.max(10, stock.price + change);
-          console.log(`📊 ${stock.symbol}: $${stock.price.toFixed(2)} → $${newPrice.toFixed(2)} (${change >= 0 ? '+' : ''}${change.toFixed(2)})`);
-          return {
-            ...stock,
-            price: newPrice,
-            change: change
-          };
-        });
-        return updatedStocks;
-      });
+    const interval = setInterval(async () => {
+      try {
+        // Get updated RBC simulation data for more realistic price movements
+        if (client && rbcApi.isAuthenticated()) {
+          const stockData = await rbcApi.getRBCStockPrices(client.id, 1);
+          
+            if (stockData.stocks && Array.isArray(stockData.stocks)) {
+              setStocks(prevStocks => {
+                const updatedStocks = prevStocks.map(prevStock => {
+                  const rbcStock = stockData.stocks.find(s => s.symbol === prevStock.symbol);
+                  if (rbcStock) {
+                    const change = rbcStock.price - prevStock.price;
+                    const changePercent = prevStock.price !== 0 ? (change / prevStock.price) * 100 : 0;
+                    
+                    // Log when stock value changes on frontend
+                    if (change !== 0) {
+                      console.log(`📊 ${prevStock.symbol}: ${changePercent >= 0 ? '📈' : '📉'} ${Math.abs(changePercent).toFixed(2)}% ($${prevStock.price.toFixed(2)} → $${rbcStock.price.toFixed(2)})`);
+                    }
+                    
+                    return {
+                      ...prevStock,
+                      price: rbcStock.price,
+                      change: change
+                    };
+                  }
+                  return prevStock;
+                });
+                
+                // Log market summary for stocks that actually changed
+                const changedStocks = updatedStocks.filter(stock => stock.change !== 0);
+                if (changedStocks.length > 0) {
+                  const avgChange = changedStocks.reduce((sum, stock) => sum + (stock.change / stock.price * 100), 0) / changedStocks.length;
+                  console.log(`📈 Market: ${changedStocks.length} stocks changed | Avg: ${avgChange >= 0 ? '📈' : '📉'} ${Math.abs(avgChange).toFixed(2)}%`);
+                }
+                
+                return updatedStocks;
+              });
 
-      setChartData(prevData => {
-        const newData = [...prevData.slice(1)];
-        const lastPrice = prevData[prevData.length - 1]?.price || 100;
-        const change = (Math.random() - 0.5) * 8;
-        newData.push({
-          time: `${Date.now() % 100}s`,
-          price: Math.max(10, lastPrice + change)
+            // Update chart with RBC price history
+            if (stockData.stockPriceData && stockData.stockPriceData[selectedStock.symbol]?.priceHistory) {
+              const priceHistory = stockData.stockPriceData[selectedStock.symbol].priceHistory;
+              const chartData = priceHistory.slice(-20).map((point, index) => ({
+                time: `${index}s`,
+                price: point.price
+              }));
+              setChartData(chartData);
+            }
+          } else {
+            throw new Error('No stock data received from RBC API');
+          }
+        } else {
+          throw new Error('Client not available or not authenticated');
+        }
+      } catch (error) {
+        console.warn('Failed to update RBC stock prices, using fallback:', error);
+            // Fallback to minimal random changes if RBC API fails
+            setStocks(prevStocks => {
+              const updatedStocks = prevStocks.map(stock => {
+                const change = (Math.random() - 0.5) * 0.5; // Much smaller changes
+                const newPrice = Math.max(10, stock.price + change);
+                const changePercent = stock.price !== 0 ? (change / stock.price) * 100 : 0;
+                
+                // Log when stock value changes on frontend
+                if (change !== 0) {
+                  console.log(`📊 ${stock.symbol}: ${changePercent >= 0 ? '📈' : '📉'} ${Math.abs(changePercent).toFixed(2)}% ($${stock.price.toFixed(2)} → $${newPrice.toFixed(2)})`);
+                }
+                
+                return {
+                  ...stock,
+                  price: newPrice,
+                  change: change
+                };
+              });
+              
+              // Log market summary for stocks that actually changed
+              const changedStocks = updatedStocks.filter(stock => stock.change !== 0);
+              if (changedStocks.length > 0) {
+                const avgChange = changedStocks.reduce((sum, stock) => sum + (stock.change / stock.price * 100), 0) / changedStocks.length;
+                console.log(`📈 Market: ${changedStocks.length} stocks changed | Avg: ${avgChange >= 0 ? '📈' : '📉'} ${Math.abs(avgChange).toFixed(2)}%`);
+              }
+              
+              return updatedStocks;
+            });
+
+        setChartData(prevData => {
+          const newData = [...prevData.slice(1)];
+          const lastPrice = prevData[prevData.length - 1]?.price || 100;
+          const change = (Math.random() - 0.5) * 1; // Smaller changes
+          newData.push({
+            time: `${Date.now() % 100}s`,
+            price: Math.max(10, lastPrice + change)
+          });
+          return newData;
         });
-        return newData;
-      });
-    }, 1000);
+      }
+    }, 2000); // Update every 2 seconds instead of 1 second
 
     return () => clearInterval(interval);
-  }, [timeLeft, gameComplete, portfolio]);
+  }, [timeLeft, gameComplete, portfolio, client, selectedStock.symbol]);
 
   // Update portfolio value
   useEffect(() => {

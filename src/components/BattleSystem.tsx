@@ -135,8 +135,12 @@ export function BattleSystem({ gameConfig, onBattleComplete }: BattleSystemProps
 
         // Save game session to MongoDB
         try {
-          const token = await getAccessTokenSilently();
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/users/game-session`, {
+          const token = localStorage.getItem('game_token');
+          if (!token) {
+            console.warn('No RBC token available for game session saving');
+            return;
+          }
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/game-session`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

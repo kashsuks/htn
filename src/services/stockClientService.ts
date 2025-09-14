@@ -40,7 +40,7 @@ class StockClientService {
       const gameApiModule = await import('./gameApi');
       const teamAuth = await gameApiModule.gameApi.registerTeam({ 
         team_name: teamId, 
-        contact_email: `${teamId}@stockfighter.game` 
+        contact_email: `${teamId}@stockfighter.game`
       });
       
       // Create clients and portfolios for each stock
@@ -179,7 +179,7 @@ class StockClientService {
     console.log(`🔮 Getting ${timeFrame}-day prediction for ${symbol}`);
     
     // Use backend proxy to avoid CORS issues
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/rbc/clients/${clientId}/portfolios/${portfolioId}/predict`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/rbc/clients/${clientId}/portfolios/${portfolioId}/predict`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

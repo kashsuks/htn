@@ -174,16 +174,31 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
     if (timeLeft <= 0 || gameComplete) return;
     
     const interval = setInterval(() => {
-      setStocks(prevStocks => 
-        prevStocks.map(stock => {
+      setStocks(prevStocks => {
+        const updatedStocks = prevStocks.map(stock => {
           const change = (Math.random() - 0.5) * 5;
+          const newPrice = Math.max(10, stock.price + change);
+          const changePercent = stock.price !== 0 ? (change / stock.price) * 100 : 0;
+          
+          // Log ALL price changes with percentage
+          console.log(`📊 ${stock.symbol}: ${changePercent >= 0 ? '📈' : '📉'} ${Math.abs(changePercent).toFixed(4)}% ($${stock.price.toFixed(2)} → $${newPrice.toFixed(2)})`);
+          
           return {
             ...stock,
-            price: Math.max(10, stock.price + change),
+            price: newPrice,
             change: change
           };
-        })
-      );
+        });
+        
+        // Log market summary for all changes
+        const changedStocks = updatedStocks.filter(stock => stock.change !== 0);
+        if (changedStocks.length > 0) {
+          const avgChange = changedStocks.reduce((sum, stock) => sum + (stock.change / stock.price * 100), 0) / changedStocks.length;
+          console.log(`📈 MARKET UPDATE: ${changedStocks.length} stocks changed | Avg: ${avgChange >= 0 ? '📈' : '📉'} ${Math.abs(avgChange).toFixed(4)}%`);
+        }
+        
+        return updatedStocks;
+      });
 
       setChartData(prevData => {
         const newData = [...prevData.slice(1)];
@@ -389,8 +404,12 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
   // Save game session to MongoDB
   const saveGameSession = async (finalValue: number) => {
     try {
-      const token = await getAccessTokenSilently();
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'}/api/users/game-session`, {
+      const token = localStorage.getItem('game_token');
+      if (!token) {
+        console.warn('No RBC token available for game session saving');
+        return;
+      }
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/users/game-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -417,11 +436,24 @@ export function SimpleTradingGame({ gameConfig, isAITurn, onComplete, roundNumbe
 
   const handleEventTrigger = useCallback((impact: 'positive' | 'negative' | 'neutral') => {
     const multiplier = impact === 'positive' ? 1.05 : impact === 'negative' ? 0.95 : 1;
+    const changePercent = (multiplier - 1) * 100;
+    
+    console.log(`🎯 EVENT TRIGGER: ${impact.toUpperCase()} impact - ${changePercent >= 0 ? '📈' : '📉'} ${Math.abs(changePercent).toFixed(2)}% market-wide`);
+    
     setStocks(prevStocks => 
-      prevStocks.map(stock => ({
-        ...stock,
-        price: stock.price * multiplier
-      }))
+      prevStocks.map(stock => {
+        const oldPrice = stock.price;
+        const newPrice = stock.price * multiplier;
+        const stockChangePercent = oldPrice !== 0 ? ((newPrice - oldPrice) / oldPrice) * 100 : 0;
+        
+        // Log individual stock changes from event
+        console.log(`📊 ${stock.symbol}: ${stockChangePercent >= 0 ? '📈' : '📉'} ${Math.abs(stockChangePercent).toFixed(4)}% ($${oldPrice.toFixed(2)} → $${newPrice.toFixed(2)})`);
+        
+        return {
+          ...stock,
+          price: newPrice
+        };
+      })
     );
   }, []);
 

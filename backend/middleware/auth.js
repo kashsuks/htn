@@ -20,6 +20,44 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
+  // Handle RBC API tokens (JWT tokens that start with 'eyJ')
+  if (token.startsWith('eyJ')) {
+    try {
+      // Decode RBC token without verification (since we don't have RBC's signing key)
+      const decoded = jwt.decode(token);
+      
+      if (decoded) {
+        // Validate token structure and expiration
+        if (decoded.exp && decoded.exp < Date.now() / 1000) {
+          console.log('❌ RBC token expired');
+          return res.status(401).json({ error: 'Token expired' });
+        }
+        
+        if (!decoded.teamId && !decoded.sub) {
+          console.log('❌ RBC token missing teamId');
+          return res.status(401).json({ error: 'Invalid token structure' });
+        }
+        
+        console.log('🔑 RBC API token validated, using team-based auth');
+        req.user = { 
+          sub: decoded.teamId || decoded.sub, 
+          email: decoded.contact_email || decoded.email || 'rbc@api.com',
+          teamId: decoded.teamId || decoded.sub,
+          team_name: decoded.team_name || 'RBC API User',
+          exp: decoded.exp,
+          iat: decoded.iat
+        };
+        return next();
+      }
+    } catch (err) {
+      console.warn('Failed to decode RBC token:', err.message);
+    }
+    
+    // If RBC token decoding fails, return 401
+    console.log('❌ Invalid RBC token');
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
   // Skip JWT verification if no AUTH0_DOMAIN is configured
   if (!process.env.AUTH0_DOMAIN) {
     console.log('⚠️ Auth0 not configured, skipping token verification');
@@ -27,6 +65,7 @@ const authenticateToken = (req, res, next) => {
     return next();
   }
 
+  // Try Auth0 verification for non-RBC tokens
   jwt.verify(token, getKey, {
     audience: process.env.AUTH0_AUDIENCE,
     issuer: `https://${process.env.AUTH0_DOMAIN}/`,
@@ -57,6 +96,48 @@ const optionalAuth = (req, res, next) => {
     return next();
   }
 
+  // Handle RBC API tokens (JWT tokens that start with 'eyJ')
+  if (token.startsWith('eyJ')) {
+    try {
+      // Decode RBC token without verification
+      const decoded = jwt.decode(token);
+      
+      if (decoded) {
+        // Validate token structure and expiration
+        if (decoded.exp && decoded.exp < Date.now() / 1000) {
+          console.log('❌ RBC token expired in optional auth');
+          req.user = null;
+          return next();
+        }
+        
+        if (!decoded.teamId && !decoded.sub) {
+          console.log('❌ RBC token missing teamId in optional auth');
+          req.user = null;
+          return next();
+        }
+        
+        console.log('🔑 RBC API token validated in optional auth');
+        req.user = { 
+          sub: decoded.teamId || decoded.sub, 
+          email: decoded.contact_email || decoded.email || 'rbc@api.com',
+          teamId: decoded.teamId || decoded.sub,
+          team_name: decoded.team_name || 'RBC API User',
+          exp: decoded.exp,
+          iat: decoded.iat
+        };
+        return next();
+      }
+    } catch (err) {
+      console.warn('Failed to decode RBC token in optional auth:', err.message);
+    }
+    
+    // If RBC token decoding fails, set user to null
+    console.log('❌ Invalid RBC token in optional auth');
+    req.user = null;
+    return next();
+  }
+
+  // Try Auth0 verification for non-RBC tokens
   jwt.verify(token, getKey, {
     audience: process.env.AUTH0_AUDIENCE,
     issuer: `https://${process.env.AUTH0_DOMAIN}/`,

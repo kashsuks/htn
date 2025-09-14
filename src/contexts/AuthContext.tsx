@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
   const getAuthHeaders = async () => {
     try {
@@ -73,6 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createOrUpdateProfile = async () => {
     if (!isAuthenticated || !user) return;
+
+    // Skip Auth0 profile creation for RBC-based games
+    console.log('Skipping Auth0 profile creation - using RBC authentication');
+    return;
 
     setLoading(true);
     try {
@@ -102,6 +106,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async () => {
     if (!isAuthenticated) return;
+
+    // Skip Auth0 profile fetching for RBC-based games
+    console.log('Skipping Auth0 profile fetching - using RBC authentication');
+    return;
 
     setLoading(true);
     try {
