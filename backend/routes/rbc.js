@@ -453,7 +453,7 @@ router.post('/clients/:id/deposit', async (req, res) => {
   }
 });
 
-// POST /rbc/client/:id/simulate - Simulate portfolios for client
+// POST /rbc/client/:id/simulate - simulate portfolios for client
 router.post('/client/:id/simulate', async (req, res) => {
   try {
     const { id } = req.params;
