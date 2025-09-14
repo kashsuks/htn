@@ -132,12 +132,22 @@ export function ThreeWayBattle({ timeFrame, initialCash, onComplete }: ThreeWayB
                   const result = simulationData.results[0];
                   setInvestEaseValue(result.projectedValue || result.endingValue || initialCash);
                   setInvestEaseStrategy(result.strategy || 'RBC InvestEase AI Portfolio Management');
+                  console.log('🏦 InvestEase RBC simulation complete:', result);
                 }
+              } else {
+                console.warn('RBC API failed, using Groq fallback');
+                const investEasePerf = await groqStockMarket.generateInvestEasePerformance(initialCash, timeFrame);
+                setInvestEaseValue(investEasePerf.finalValue);
+                setInvestEaseStrategy(investEasePerf.strategy);
               }
+            } else {
+              console.warn('No RBC token available, using Groq fallback');
+              const investEasePerf = await groqStockMarket.generateInvestEasePerformance(initialCash, timeFrame);
+              setInvestEaseValue(investEasePerf.finalValue);
+              setInvestEaseStrategy(investEasePerf.strategy);
             }
           } catch (error) {
-            console.warn('Failed to get RBC InvestEase simulation, using fallback:', error);
-            // Fallback to Groq if RBC fails
+            console.warn('Failed to get RBC InvestEase simulation, using Groq fallback:', error);
             const investEasePerf = await groqStockMarket.generateInvestEasePerformance(initialCash, timeFrame);
             setInvestEaseValue(investEasePerf.finalValue);
             setInvestEaseStrategy(investEasePerf.strategy);

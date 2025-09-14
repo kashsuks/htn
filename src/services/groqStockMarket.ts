@@ -211,24 +211,11 @@ class GroqStockMarketService {
 
     for (const stock of this.stocks) {
       try {
-        // Generate new price with realistic movement
-        const priceChange = (Math.random() - 0.5) * 10; // -5% to +5% change
-        const newPrice = Math.max(1, stock.price + priceChange);
-        const changePercent = (priceChange / stock.price) * 100;
-        
-        const updatedStock: StockMarketData = {
-          ...stock,
-          price: newPrice,
-          change: priceChange,
-          changePercent: changePercent,
-          volume: Math.floor(Math.random() * 1000000) + 100000,
-          marketCap: newPrice * 1000000,
-          trend: changePercent > 2 ? 'bullish' : changePercent < -2 ? 'bearish' : 'neutral',
-          news: `Day ${day} market activity`
-        };
-        
+        const updatedStock = await this.generateStockData(
+          { symbol: stock.symbol, name: stock.name, sector: stock.sector, basePrice: stock.price },
+          day
+        );
         updatedStocks.push(updatedStock);
-        console.log(`📊 ${stock.symbol}: $${stock.price.toFixed(2)} → $${newPrice.toFixed(2)} (${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`);
       } catch (error) {
         console.warn(`Failed to update ${stock.symbol}, keeping previous data:`, error);
         updatedStocks.push(stock);
