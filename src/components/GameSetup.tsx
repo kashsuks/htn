@@ -107,7 +107,7 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-4xl mx-auto p-8"
+        className="w-full max-w-4xl mx-auto p-8 mt-[5rem]"
       >
         {/* Title */}
         <motion.div
@@ -116,41 +116,41 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
           transition={{ delay: 0.2 }}
           className="text-center mb-12"
         >
-          <div className="text-6xl mb-4 neon-pink">
-            🥊 STOCK FIGHTER
+          <div className="text-6xl mb-4 text-[#ff00e9]">
+            STOCK FIGHTER
           </div>
-          <div className="text-xl neon-blue">
+          <div className="text-3xl text-[#00e1ff]">
             CONFIGURE YOUR BATTLE
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Team Setup */}
           <motion.div
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className="border-4 neon-border-blue" style={{backgroundColor: 'rgba(6, 22, 37, 0.9)'}}>
+            <Card className="border-4 border-[#00e1ff]" style={{backgroundColor: 'rgba(6, 22, 37, 0.9)'}}>
               <CardHeader>
-                <CardTitle className="neon-yellow text-2xl">TEAM SETUP</CardTitle>
+                <CardTitle className="text-[#fff900] text-3xl">TEAM SETUP</CardTitle>
                 <CardDescription className="text-gray-300">
                   Register your team for the RBC InvestEase API
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="teamName" className="neon-blue">Team Name *</Label>
+                  <Label htmlFor="teamName" className="text-[#00e1ff] mb-2 text-xl ">Team Name *</Label>
                   <Input
                     id="teamName"
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
                     placeholder="Enter your team name"
-                    className="mt-1"
+                    className=""
                   />
                 </div>
                 <div>
-                  <Label htmlFor="contactEmail" className="neon-blue">Contact Email *</Label>
+                  <Label htmlFor="contactEmail" className="text-[#00e1ff] text-xl mb-2">Contact Email *</Label>
                   <Input
                     id="contactEmail"
                     type="email"
@@ -170,16 +170,16 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="border-4 neon-border-pink" style={{backgroundColor: 'rgba(6, 22, 37, 0.9)'}}>
+            <Card className="border-4 border-[#ff00e9]" style={{backgroundColor: 'rgba(6, 22, 37, 0.9)'}}>
               <CardHeader>
-                <CardTitle className="neon-pink text-2xl">BATTLE CONFIG</CardTitle>
+                <CardTitle className="text-[#ff00e9] text-3xl">BATTLE CONFIG</CardTitle>
                 <CardDescription className="text-gray-300">
                   Set your investment challenge parameters
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="neon-yellow">Investment Goal *</Label>
+                  <Label className="text-[#fff900] text-xl mb-2">Investment Goal *</Label>
                   <Select onValueChange={handleGoalSelect}>
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select your goal" />
@@ -194,7 +194,7 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
                   </Select>
                   {goal && (
                     <div className="mt-2">
-                      <Label htmlFor="goalCost" className="neon-blue">Goal Cost ($) *</Label>
+                      <Label htmlFor="goalCost" className="text-[#00e1ff]">Goal Cost ($) *</Label>
                       <Input
                         id="goalCost"
                         type="number"
@@ -207,8 +207,8 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
                   )}
                 </div>
                 <div>
-                  <Label className="neon-yellow">Time Frame *</Label>
-                  <Select value={timeframe.toString()} onValueChange={(value) => setTimeframe(Number(value))}>
+                  <Label className="text-[#fff900] text-xl mb-2">Time Frame *</Label>
+                  <Select value={timeframe.toString()} onValueChange={(value: any) => setTimeframe(Number(value))}>
                     <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
@@ -222,7 +222,7 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="initialCash" className="neon-blue">Starting Cash ($)</Label>
+                  <Label htmlFor="initialCash" className="text-[#00e1ff] text-xl mb-2">Starting Cash ($)</Label>
                   <Input
                     id="initialCash"
                     type="number"
@@ -244,28 +244,28 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
           transition={{ delay: 0.5 }}
           className="mt-8"
         >
-          <Card className="border-4 neon-border-yellow" style={{backgroundColor: 'rgba(6, 22, 37, 0.9)'}}>
+          <Card className="border-4 border-[#fff900]" style={{backgroundColor: 'rgba(6, 22, 37, 0.9)'}}>
             <CardHeader>
-              <CardTitle className="neon-yellow text-xl">BATTLE RULES</CardTitle>
+              <CardTitle className="text-[#fff900] text-3xl">BATTLE RULES</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-lg text-white">
                 <div className="flex items-start gap-2">
-                  <span className="text-yellow-400">⚡</span>
+                  <span className="text-yellow-400"></span>
                   <div>
-                    <strong className="neon-blue">REAL-TIME:</strong> 1 second = 0.5 days in game
+                    <strong className="text-[#00e1ff]">REAL-TIME:</strong> 1 second = 0.5 days in game
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-yellow-400">🎯</span>
+                  <span className="text-yellow-400"></span>
                   <div>
-                    <strong className="neon-pink">GOAL:</strong> Reach your target amount in time
+                    <strong className="text-[#ff00e9]">GOAL:</strong> Reach your target amount in time
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <span className="text-yellow-400">🥊</span>
+                  <span className="text-yellow-400"></span>
                   <div>
-                    <strong className="neon-yellow">BATTLE:</strong> Best of 3 rounds vs AI
+                    <strong className="text-[#fff900]">BATTLE:</strong> Best of 3 rounds vs AI
                   </div>
                 </div>
               </div>
@@ -278,7 +278,7 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="mt-4 p-4 border-2 border-red-500 bg-red-900/20 rounded-lg"
+            className="mt-4 mb-4 p-4 border-2 border-red-500 bg-red-900/20 rounded-lg"
           >
             <p className="text-red-400 text-center">{error}</p>
           </motion.div>
@@ -295,42 +295,10 @@ export function GameSetup({ onGameStart }: GameSetupProps) {
             onClick={handleStartGame}
             disabled={isLoading}
             size="lg"
-            className="border-4 neon-border-yellow text-black pixel-font text-3xl px-12 py-6 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50"
-            style={{backgroundColor: '#fff900'}}
+            className="border-4 border-[#fff900] text-black mt-[2rem] pixel-font text-3xl px-12 py-6 bg-[#fff900] hover:bg-[#bfbc00] disabled:opacity-50"
           >
-            {isLoading ? '⚡ INITIALIZING...' : '🥊 START BATTLE'}
+            {isLoading ? '⚡ INITIALIZING...' : 'START BATTLE'}
           </Button>
-        </motion.div>
-
-        {/* Floating animations */}
-        <motion.div
-          animate={{ 
-            y: [0, -20, 0],
-            rotate: [0, 10, -10, 0]
-          }}
-          transition={{ 
-            duration: 4, 
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          className="absolute top-20 left-20 text-6xl opacity-30"
-        >
-          💰
-        </motion.div>
-        
-        <motion.div
-          animate={{ 
-            y: [0, 15, 0],
-            x: [0, 10, 0]
-          }}
-          transition={{ 
-            duration: 5, 
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          className="absolute top-32 right-32 text-5xl opacity-30"
-        >
-          📊
         </motion.div>
       </motion.div>
     </div>

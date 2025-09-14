@@ -8,9 +8,9 @@ export const LoginButton: React.FC = () => {
   return (
     <Button
       onClick={() => loginWithRedirect()}
-      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105"
+      className="bg-[#6100ff] hover:bg-[#370090] text-white text-xl font-bold py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105"
     >
-      🚀 Login / Sign Up
+      Login / Sign Up
     </Button>
   );
 };

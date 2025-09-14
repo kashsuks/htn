@@ -24,7 +24,7 @@ export function NewsTicker() {
   }, []);
 
   return (
-    <div className="w-full bg-red-600 text-white py-2 overflow-hidden border-b-4 border-yellow-400">
+    <div className="w-full bg-red-600 text-white py-2 overflow-hidden">
       <motion.div
         key={currentNews}
         initial={{ x: "100%" }}

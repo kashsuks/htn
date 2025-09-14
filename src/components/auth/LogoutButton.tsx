@@ -9,9 +9,9 @@ export const LogoutButton: React.FC = () => {
     <Button
       onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
       variant="outline"
-      className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300"
+      className="bg-[#6100ff] text-white"
     >
-      🚪 Logout
+      Logout
     </Button>
   );
 };

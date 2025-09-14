@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { GameConfig } from './GameSetup';
 import { useAuthContext } from '../contexts/AuthContext';
 import { StockHistoryModal } from './StockHistoryModal';
+import { NewsTicker } from './NewsTicker';
 
 interface Stock {
   symbol: string;
@@ -389,6 +390,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         setInvestEaseStrategy(`Fallback ${strategy.charAt(0).toUpperCase() + strategy.slice(1)} Strategy`);
         setInvestEasePortfolio({});
         setInvestEaseCash(newValue);
+        setInvestEaseComplete(true);
         
         // Generate realistic InvestEase-style trend data with market volatility
         const fallbackTrendData = [];
@@ -578,8 +580,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     return (
       <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
         <div className="text-center">
-          <h1 className="text-4xl neon-pink mb-8">🎯 THREE-WAY BATTLE</h1>
-          <div className="text-2xl neon-cyan mb-8">
+          <h1 className="text-4xl text-[#ff00e9] mb-8 mt-[4rem]">THREE-WAY BATTLE</h1>
+          <div className="text-2xl text-[#00e1ff] mb-8">
             Human vs Autonomous AI vs InvestEase
           </div>
           <div className="text-lg text-white mb-8">
@@ -592,7 +594,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
             className="text-black text-2xl px-8 py-4 border-4 neon-border-yellow rounded-lg"
             style={{backgroundColor: '#fff900'}}
           >
-            🚀 START BATTLE
+            START BATTLE
           </motion.button>
         </div>
       </div>
@@ -627,15 +629,15 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     };
 
     const getWinnerColor = (trader: string) => {
-      if (trader === winner) return 'neon-yellow';
-      return trader === 'human' ? 'neon-blue' : trader === 'autonomous' ? 'neon-purple' : 'neon-green';
+      if (trader === winner) return 'text-[#fff900]';
+      return trader === 'human' ? 'neon-blue' : trader === 'autonomous' ? 'text-[#6100ff]' : 'text-[#39ff14]';
     };
 
     return (
       <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
         <div className="text-center mb-8">
-          <h1 className="text-4xl neon-pink mb-4">🏆 BATTLE RESULTS</h1>
-          <div className="text-2xl neon-yellow mb-2">
+          <h1 className="text-4xl text-[#ff00e9] mb-4">🏆 BATTLE RESULTS</h1>
+          <div className="text-2xl text-[#fff900] mb-2">
             {winner === 'human' && '👤 HUMAN WINS!'}
             {winner === 'autonomous' && '🤖 AUTONOMOUS AI WINS!'}
             {winner === 'investease' && '🏦 INVESTEASE WINS!'}
@@ -658,8 +660,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <h3 className={`text-2xl ${getWinnerColor('human')} mb-4`}>
                 {getWinnerIcon('human')} HUMAN
               </h3>
-              <div className="text-3xl neon-yellow mb-2">${humanValue.toFixed(2)}</div>
-              <div className={`text-xl ${humanReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+              <div className="text-3xl text-[#fff900] mb-2">${humanValue.toFixed(2)}</div>
+              <div className={`text-xl ${humanReturn >= 0 ? 'text-[#39ff14]' : 'text-[#ff0000]'}`}>
                 {humanReturn >= 0 ? '+' : ''}{humanReturn.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
@@ -678,8 +680,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <h3 className={`text-2xl ${getWinnerColor('autonomous')} mb-4`}>
                 {getWinnerIcon('autonomous')} AUTONOMOUS AI
               </h3>
-              <div className="text-3xl neon-yellow mb-2">${autonomousValue.toFixed(2)}</div>
-              <div className={`text-xl ${autonomousReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+              <div className="text-3xl text-[#fff900] mb-2">${autonomousValue.toFixed(2)}</div>
+              <div className={`text-xl ${autonomousReturn >= 0 ? 'text-[#39ff14]' : 'text-[#ff0000]'}`}>
                 {autonomousReturn >= 0 ? '+' : ''}{autonomousReturn.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
@@ -698,8 +700,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <h3 className={`text-2xl ${getWinnerColor('investease')} mb-4`}>
                 {getWinnerIcon('investease')} INVESTEASE
               </h3>
-              <div className="text-3xl neon-yellow mb-2">${investEaseValue.toFixed(2)}</div>
-              <div className={`text-xl ${investEaseReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+              <div className="text-3xl text-[#fff900] mb-2">${investEaseValue.toFixed(2)}</div>
+              <div className={`text-xl ${investEaseReturn >= 0 ? 'text-[#39ff14]' : 'text-[#ff0000]'}`}>
                 {investEaseReturn >= 0 ? '+' : ''}{investEaseReturn.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
@@ -722,7 +724,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
                 &times;
               </button>
               
-              <h2 className="text-3xl neon-cyan mb-4 text-center">
+              <h2 className="text-3xl text-[#00e1ff] mb-4 text-center">
                 {selectedTrader === 'human' && '👤 HUMAN TRADER'}
                 {selectedTrader === 'autonomous' && '🤖 AUTONOMOUS AI'}
                 {selectedTrader === 'investease' && '🏦 INVESTEASE'}
@@ -828,22 +830,23 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   // Human Turn Page
   if (battlePhase === 'human') {
     return (
-      <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
+      <div className="min-h-screen text-white mt-[4rem] p-6 pt-20" style={{backgroundColor: '#061625'}}>
          {/* Header */}
+         <NewsTicker />
          <div className="text-center mb-8">
            <motion.div
              initial={{ scale: 0.8, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
-             className="text-4xl neon-pink mb-4"
+             className="text-4xl text-[#ff00e9] mb-4"
            >
              👤 YOUR TURN
            </motion.div>
            
-           <div className="text-lg text-white mb-4">
-             DAY {currentDay} OF {gameConfig.timeframe} | {timeLeft}S REMAINING
+           <div className="text-xl text-white mb-4">
+             DAY {currentDay} OF {gameConfig.timeframe} | <span className='text-[#39ff14]'>{timeLeft}S</span> REMAINING
            </div>
            {timeLeft <= 0 && (
-             <div className="text-lg neon-red mb-2">
+             <div className="text-lg text-[#ff0000] mb-2">
                ⏰ TIME'S UP - TRADING DISABLED
              </div>
            )}
@@ -853,11 +856,11 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         <div className="border-4 neon-border-yellow p-6 rounded-lg mb-8" style={{backgroundColor: 'rgba(255, 249, 0, 0.1)'}}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-2xl neon-yellow mb-2">👤 HUMAN TRADER</h3>
-              <div className="text-sm text-gray-400">Manual Trading Strategy</div>
+              <h3 className="text-2xl text-[#fff900] mb-2">👤 HUMAN TRADER</h3>
+              <div className="text-xl text-gray-400">Manual Trading Strategy</div>
             </div>
             <div className="text-right">
-              <div className="text-3xl neon-yellow font-bold">${humanValue.toFixed(2)}</div>
+              <div className="text-3xl text-[#fff900] font-bold">${humanValue.toFixed(2)}</div>
               <div className={`text-lg ${((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
               </div>
@@ -865,17 +868,17 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           </div>
           
           {/* Portfolio Breakdown */}
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-3 gap-4 text-xl">
             <div className="text-center">
               <div className="neon-blue font-bold">CASH</div>
               <div className="text-white">${humanCash.toFixed(2)}</div>
             </div>
             <div className="text-center">
-              <div className="neon-pink font-bold">INVESTMENTS</div>
+              <div className="text-[#ff00e9] font-bold">INVESTMENTS</div>
               <div className="text-white">${(humanValue - humanCash).toFixed(2)}</div>
             </div>
             <div className="text-center">
-              <div className="neon-green font-bold">TOTAL RETURN</div>
+              <div className="text-[#39ff14] font-bold">TOTAL RETURN</div>
               <div className={`${((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((humanValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
               </div>
@@ -885,7 +888,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
         {/* Stock Market */}
         <div className="mb-8">
-          <h3 className="text-xl neon-cyan mb-4">📈 AVAILABLE STOCKS</h3>
+          <h3 className="text-2xl text-[#ff00e9] mb-4">📈 AVAILABLE STOCKS</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {stocks.map((stock) => (
               <motion.div
@@ -898,10 +901,10 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="neon-cyan font-bold">{stock.symbol}</div>
-                    <div className="text-sm text-white">{stock.name}</div>
-                    <div className="text-xs text-gray-400">{stock.sector}</div>
-                    <div className="text-xs text-cyan-400 mt-1">📊 Click for chart</div>
+                    <div className="text-[#00e1ff] font-bold">{stock.symbol}</div>
+                    <div className="text-xl text-white">{stock.name}</div>
+                    <div className="text-lg text-gray-400">{stock.sector}</div>
+                    <div className="text-lg text-cyan-400 mt-1 mb-2">Click for chart</div>
                   </div>
                   <div className="text-right">
                     <div className="text-white font-bold">${stock.price.toFixed(2)}</div>
@@ -945,11 +948,11 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         </div>
 
         {/* Trading Logs and Summary */}
-        <div className="border-4 neon-border-blue p-6 rounded-lg" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
-          <h3 className="text-xl neon-blue mb-4">📊 TRADING LOGS & SUMMARY</h3>
+        <div className="border-4 border-[#00e1ff] p-6 rounded-lg" style={{backgroundColor: 'rgba(0, 225, 255, 0.1)'}}>
+          <h3 className="text-xl text-[#00e1ff] mb-4">📊 TRADING LOGS & SUMMARY</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-lg neon-cyan mb-2">Current Holdings</h4>
+              <h4 className="text-2xl text-[#00e1ff] mb-2">Current Holdings</h4>
               <div className="space-y-2">
                 {Object.entries(humanPortfolio).filter(([_, shares]) => shares > 0).length > 0 ? (
                   Object.entries(humanPortfolio)
@@ -964,13 +967,13 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
                       );
                     })
                 ) : (
-                  <div className="text-gray-400 text-sm">No current holdings</div>
+                  <div className="text-gray-400 text-lg">No current holdings</div>
                 )}
               </div>
             </div>
             <div>
-              <h4 className="text-lg neon-cyan mb-2">Performance</h4>
-              <div className="space-y-2 text-sm">
+              <h4 className="text-2xl text-[#00e1ff] mb-2">Performance</h4>
+              <div className="space-y-2 text-lg">
                 <div className="flex justify-between">
                   <span className="text-white">Starting Value:</span>
                   <span className="text-white">${gameConfig.initialCash.toFixed(2)}</span>
@@ -997,9 +1000,9 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
                onClick={handleNextPhase}
-               className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+               className="px-8 py-4 mt-4 bg-[#6100ff] text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
              >
-               🤖 Start Autonomous AI Turn
+               Start Autonomous AI Turn
              </motion.button>
            </div>
          )}
@@ -1018,13 +1021,14 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   // Autonomous AI Turn Page
   if (battlePhase === 'autonomous') {
     return (
-      <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
+      <div className="min-h-screen mt-[4rem] text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
         {/* Header */}
+        <NewsTicker />
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-4xl neon-purple mb-4"
+            className="text-4xl text-[#6100ff] mb-4"
           >
             🤖 AUTONOMOUS AI TURN
           </motion.div>
@@ -1038,11 +1042,11 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         <div className="border-4 neon-border-purple p-6 rounded-lg mb-8" style={{backgroundColor: 'rgba(97, 0, 255, 0.1)'}}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-2xl neon-purple mb-2">🤖 AUTONOMOUS AI</h3>
+              <h3 className="text-2xl text-[#6100ff] mb-2">🤖 AUTONOMOUS AI</h3>
               <div className="text-sm text-gray-400">Algorithmic Trading Strategy</div>
             </div>
             <div className="text-right">
-              <div className="text-3xl neon-purple font-bold">${autonomousValue.toFixed(2)}</div>
+              <div className="text-3xl text-[#6100ff] font-bold">${autonomousValue.toFixed(2)}</div>
               <div className={`text-lg ${((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
               </div>
@@ -1056,11 +1060,11 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <div className="text-white">${autonomousCash.toFixed(2)}</div>
             </div>
             <div className="text-center">
-              <div className="neon-pink font-bold">INVESTMENTS</div>
+              <div className="text-[#ff00e9] font-bold">INVESTMENTS</div>
               <div className="text-white">${(autonomousValue - autonomousCash).toFixed(2)}</div>
             </div>
             <div className="text-center">
-              <div className="neon-green font-bold">TOTAL RETURN</div>
+              <div className="text-[#39ff14] font-bold">TOTAL RETURN</div>
               <div className={`${((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((autonomousValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
               </div>
@@ -1070,13 +1074,13 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
         {/* AI Status */}
         <div className="mb-8 text-center">
-          <div className="text-2xl neon-purple mb-4">🤖 AI IS TRADING...</div>
+          <div className="text-2xl text-[#6100ff] mb-4">🤖 AI IS TRADING...</div>
           <div className="text-lg text-white">The AI is analyzing market conditions and making trades automatically</div>
         </div>
 
         {/* Available Stocks (No Buy/Sell Buttons) */}
         <div className="mb-8">
-          <h3 className="text-xl neon-cyan mb-4">📈 MARKET OVERVIEW</h3>
+          <h3 className="text-xl text-[#00e1ff] mb-4">📈 MARKET OVERVIEW</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {stocks.map((stock) => (
               <motion.div
@@ -1087,7 +1091,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="neon-cyan font-bold">{stock.symbol}</div>
+                    <div className="text-[#00e1ff] font-bold">{stock.symbol}</div>
                     <div className="text-sm text-white">{stock.name}</div>
                     <div className="text-xs text-gray-400">{stock.sector}</div>
                   </div>
@@ -1114,7 +1118,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           <h3 className="text-xl neon-blue mb-4">📊 AI TRADING LOGS & SUMMARY</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-lg neon-cyan mb-2">AI Holdings</h4>
+              <h4 className="text-lg text-[#00e1ff] mb-2">AI Holdings</h4>
               <div className="space-y-2">
                 {Object.entries(autonomousPortfolio).filter(([_, shares]) => shares > 0).length > 0 ? (
                   Object.entries(autonomousPortfolio)
@@ -1134,7 +1138,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               </div>
             </div>
             <div>
-              <h4 className="text-lg neon-cyan mb-2">AI Performance</h4>
+              <h4 className="text-lg text-[#00e1ff] mb-2">AI Performance</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-white">Starting Value:</span>
@@ -1157,14 +1161,14 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
          {/* Next Phase Button - Only show when time is up */}
          {timeLeft <= 0 && (
-           <div className="text-center mt-8">
+           <div className="text-center mt-[2rem]">
              <motion.button
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
                onClick={handleNextPhase}
-               className="px-8 py-4 bg-gradient-to-r from-green-600 to-teal-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+               className="px-8 py-4 bg-[#39ff14] text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
              >
-               🏦 Start InvestEase Simulation
+               Start InvestEase Simulation
              </motion.button>
            </div>
          )}
@@ -1175,13 +1179,13 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
   // InvestEase Turn Page
   if (battlePhase === 'investease') {
     return (
-      <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
+      <div className="min-h-screen mt-[4rem] text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
         {/* Header */}
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-4xl neon-green mb-4"
+            className="text-4xl text-[#39ff14] mb-4"
           >
             🏦 INVESTEASE TURN
           </motion.div>
@@ -1195,11 +1199,11 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
         <div className="border-4 neon-border-green p-6 rounded-lg mb-8" style={{backgroundColor: 'rgba(0, 255, 0, 0.1)'}}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-2xl neon-green mb-2">🏦 INVESTEASE</h3>
+              <h3 className="text-2xl text-[#39ff14] mb-2">🏦 INVESTEASE</h3>
               <div className="text-sm text-gray-400">RBC AI Portfolio Management</div>
             </div>
             <div className="text-right">
-              <div className="text-3xl neon-green font-bold">${investEaseValue.toFixed(2)}</div>
+              <div className="text-3xl text-[#39ff14] font-bold">${investEaseValue.toFixed(2)}</div>
               <div className={`text-lg ${((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100}%
               </div>
@@ -1213,11 +1217,11 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <div className="text-white">${investEaseCash.toFixed(2)}</div>
             </div>
             <div className="text-center">
-              <div className="neon-pink font-bold">INVESTMENTS</div>
+              <div className="text-[#ff00e9] font-bold">INVESTMENTS</div>
               <div className="text-white">${(investEaseValue - investEaseCash).toFixed(2)}</div>
             </div>
             <div className="text-center">
-              <div className="neon-green font-bold">TOTAL RETURN</div>
+              <div className="text-[#39ff14] font-bold">TOTAL RETURN</div>
               <div className={`${((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100 >= 0 ? '+' : ''}{(((investEaseValue - gameConfig.initialCash) / gameConfig.initialCash) * 100).toFixed(1)}%
               </div>
@@ -1227,17 +1231,17 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
         {/* InvestEase Status */}
         <div className="mb-8 text-center">
-          <div className="text-2xl neon-green mb-4">🏦 INVESTEASE SIMULATION</div>
+          <div className="text-2xl text-[#39ff14] mb-4">🏦 INVESTEASE SIMULATION</div>
           <div className="text-lg text-white mb-4">RBC InvestEase AI Portfolio Management</div>
           <div className="text-sm text-gray-400 mb-4">
             InvestEase uses its own independent stock market simulator<br/>
             and applies AI-driven portfolio management strategies
           </div>
-          <div className="text-lg neon-cyan mb-4">
+          <div className="text-lg text-[#00e1ff] mb-4">
             Status: {investEaseStrategy || 'Initializing...'}
           </div>
           {investEaseComplete ? (
-            <div className="text-lg neon-green mb-4">✅ Simulation Complete!</div>
+            <div className="text-lg text-[#39ff14] mb-4">✅ Simulation Complete!</div>
           ) : (
             <div className="flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
@@ -1247,7 +1251,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
 
         {/* InvestEase Simulation Info */}
         <div className="mb-8">
-          <h3 className="text-xl neon-cyan mb-4">🏦 INVESTEASE SIMULATION DETAILS</h3>
+          <h3 className="text-xl text-[#00e1ff] mb-4">🏦 INVESTEASE SIMULATION DETAILS</h3>
           <div className="border-4 neon-border-green p-6 rounded-lg" style={{backgroundColor: 'rgba(0, 255, 0, 0.1)'}}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -1277,7 +1281,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
           <h3 className="text-xl neon-blue mb-4">📊 INVESTEASE SIMULATION LOGS & SUMMARY</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-lg neon-cyan mb-2">Simulation Strategy</h4>
+              <h4 className="text-lg text-[#00e1ff] mb-2">Simulation Strategy</h4>
               <div className="space-y-2 text-sm">
                 <div className="text-white">
                   <strong>Strategy:</strong> {investEaseStrategy || 'RBC AI Portfolio Management'}
@@ -1291,7 +1295,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               </div>
             </div>
             <div>
-              <h4 className="text-lg neon-cyan mb-2">Simulation Performance</h4>
+              <h4 className="text-lg text-[#00e1ff] mb-2">Simulation Performance</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-white">Starting Value:</span>
@@ -1318,10 +1322,31 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={handleNextPhase}
-              className="px-8 py-4 bg-gradient-to-r from-yellow-600 to-orange-600 text-white text-xl font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              onClick={() => {
+                // Calculate final results and determine winner
+                const humanValue = calculateTotalValue(humanPortfolio, humanCash);
+                const autonomousValue = calculateTotalValue(autonomousPortfolio, autonomousCash);
+                const investEaseValue = calculateTotalValue(investEasePortfolio, investEaseCash);
+                // Determine winner by highest total value (most money)
+                let winner = 'human';
+                let winnerName = '👤 HUMAN';
+                let winnerValue = humanValue;
+                if (autonomousValue > winnerValue) {
+                  winner = 'autonomous';
+                  winnerName = '🤖 AUTONOMOUS AI';
+                  winnerValue = autonomousValue;
+                }
+                if (investEaseValue > winnerValue) {
+                  winner = 'investease';
+                  winnerName = '🏦 INVESTEASE';
+                  winnerValue = investEaseValue;
+                }
+                // Show winner alert
+                alert(`🏆 WINNER: ${winnerName}\n\nFinal Results:\n👤 Human: $${humanValue.toFixed(2)}\n🤖 Autonomous AI: $${autonomousValue.toFixed(2)}\n🏦 InvestEase: $${investEaseValue.toFixed(2)}\n\n🏆 ${winnerName} wins with $${winnerValue.toFixed(2)}!`);
+              }}
+              className="px-8 py-4 bg-[#6100ff] text-white text-xl mt-[2rem] font-bold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              📊 View Results
+              Show Winner
             </motion.button>
           </div>
         )}
@@ -1358,15 +1383,15 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
     };
 
     const getWinnerColor = (trader: string) => {
-      if (trader === winner) return 'neon-yellow';
-      return trader === 'human' ? 'neon-blue' : trader === 'autonomous' ? 'neon-purple' : 'neon-green';
+      if (trader === winner) return 'text-[#fff900]';
+      return trader === 'human' ? 'neon-blue' : trader === 'autonomous' ? 'text-[#6100ff]' : 'text-[#39ff14]';
     };
 
     return (
       <div className="min-h-screen text-white p-6 pt-20" style={{backgroundColor: '#061625'}}>
         <div className="text-center mb-8">
-          <h1 className="text-4xl neon-pink mb-4">🏆 BATTLE RESULTS</h1>
-          <div className="text-2xl neon-yellow mb-2">
+          <h1 className="text-4xl text-[#ff00e9] mb-4">🏆 BATTLE RESULTS</h1>
+          <div className="text-2xl text-[#fff900] mb-2">
             {winner === 'human' && '👤 HUMAN WINS!'}
             {winner === 'autonomous' && '🤖 AUTONOMOUS AI WINS!'}
             {winner === 'investease' && '🏦 INVESTEASE WINS!'}
@@ -1389,8 +1414,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <h3 className={`text-2xl ${getWinnerColor('human')} mb-4`}>
                 {getWinnerIcon('human')} HUMAN
               </h3>
-              <div className="text-3xl neon-yellow mb-2">${humanValue.toFixed(2)}</div>
-              <div className={`text-xl ${humanReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+              <div className="text-3xl text-[#fff900] mb-2">${humanValue.toFixed(2)}</div>
+              <div className={`text-xl ${humanReturn >= 0 ? 'text-[#39ff14]' : 'text-[#ff0000]'}`}>
                 {humanReturn >= 0 ? '+' : ''}{humanReturn.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
@@ -1409,8 +1434,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <h3 className={`text-2xl ${getWinnerColor('autonomous')} mb-4`}>
                 {getWinnerIcon('autonomous')} AUTONOMOUS AI
               </h3>
-              <div className="text-3xl neon-yellow mb-2">${autonomousValue.toFixed(2)}</div>
-              <div className={`text-xl ${autonomousReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+              <div className="text-3xl text-[#fff900] mb-2">${autonomousValue.toFixed(2)}</div>
+              <div className={`text-xl ${autonomousReturn >= 0 ? 'text-[#39ff14]' : 'text-[#ff0000]'}`}>
                 {autonomousReturn >= 0 ? '+' : ''}{autonomousReturn.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
@@ -1429,8 +1454,8 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
               <h3 className={`text-2xl ${getWinnerColor('investease')} mb-4`}>
                 {getWinnerIcon('investease')} INVESTEASE
               </h3>
-              <div className="text-3xl neon-yellow mb-2">${investEaseValue.toFixed(2)}</div>
-              <div className={`text-xl ${investEaseReturn >= 0 ? 'neon-green' : 'neon-red'}`}>
+              <div className="text-3xl text-[#fff900] mb-2">${investEaseValue.toFixed(2)}</div>
+              <div className={`text-xl ${investEaseReturn >= 0 ? 'text-[#39ff14]' : 'text-[#ff0000]'}`}>
                 {investEaseReturn >= 0 ? '+' : ''}{investEaseReturn.toFixed(1)}%
               </div>
               <div className="text-sm text-gray-400 mt-2">Click to view trend graph</div>
@@ -1465,7 +1490,7 @@ export function ThreeWayBattleSystem({ gameConfig, onBattleComplete }: ThreeWayB
                 &times;
               </button>
               
-              <h2 className="text-3xl neon-cyan mb-4 text-center">
+              <h2 className="text-3xl text-[#00e1ff] mb-4 text-center">
                 {selectedTrader === 'human' && '👤 HUMAN TRADER'}
                 {selectedTrader === 'autonomous' && '🤖 AUTONOMOUS AI'}
                 {selectedTrader === 'investease' && '🏦 INVESTEASE'}
