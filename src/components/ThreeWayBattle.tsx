@@ -210,7 +210,7 @@ export function ThreeWayBattle({ timeFrame, initialCash, onComplete }: ThreeWayB
       setAiTrades(prev => [...prev, trade]);
       console.log('🤖 AI Trade:', trade);
       
-    } else if (decision.action === 'sell' && aiPortfolio[decision.symbol] >= decision.shares) {
+    } else if (decision.action === 'sell' && (aiPortfolio[decision.symbol] || 0) >= decision.shares) {
       setAiCash(prev => prev + tradeValue);
       setAiPortfolio(prev => ({
         ...prev,

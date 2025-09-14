@@ -9,6 +9,7 @@ const gameRoutes = require('./routes/game');
 const rbcTradingRoutes = require('./routes/rbc-trading');
 const userRoutes = require('./routes/users');
 const stockEventRoutes = require('./routes/stock-events');
+const groqRoutes = require('./routes/groq');
 
 // Use MongoDB for data storage
 const mongoDBService = require('./services/mongodb');
@@ -16,18 +17,23 @@ const mongoDBService = require('./services/mongodb');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(helmet());
-app.use(cors({
+// CORS configuration
+const corsOptions = {
   origin: [
     'http://localhost:3000',
     'http://localhost:5173',
     'http://localhost:3005',
     'http://localhost:3007',
+    'http://localhost:3015',
     process.env.CORS_ORIGIN || 'http://localhost:3000'
   ],
-  credentials: true
-}));
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+// Middleware
+app.use(helmet());
+app.use(cors(corsOptions));
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -49,6 +55,7 @@ app.use('/api/game', gameRoutes);
 app.use('/api/rbc-trading', rbcTradingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/stock-events', stockEventRoutes);
+app.use('/api/groq', groqRoutes);
 app.use('/users', userRoutes);
 
 // 404 handler
